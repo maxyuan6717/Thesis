@@ -1,34 +1,6 @@
-categories = [
-    "ones",
-    "twos",
-    "threes",
-    "fours",
-    "fives",
-    "sixes",
-    "3 of a kind",
-    "4 of a kind",
-    "full house",
-    "small straight",
-    "large straight",
-    "yahtzee",
-    "chance",
-]
+import pickle as pkl
 
-categories_to_index = {
-    "ones": 0,
-    "twos": 1,
-    "threes": 2,
-    "fours": 3,
-    "fives": 4,
-    "sixes": 5,
-    "3 of a kind": 6,
-    "4 of a kind": 7,
-    "full house": 8,
-    "small straight": 9,
-    "large straight": 10,
-    "yahtzee": 11,
-    "chance": 12,
-}
+scores = pkl.load(open("scores.pkl", "rb"))
 
 
 class Scorecard:
@@ -36,12 +8,11 @@ class Scorecard:
         self.bitmask = init_bitmask
         self.total_score = 0
 
-    def is_category_filled(self, category):
-        return self.bitmask & (1 << category)
-
-    def fill_category(self, category, score):
+    def score(self, category: int, dice: tuple[int, ...]):
+        if self.bitmask & (1 << category):
+            raise ValueError("Category already scored")
         self.bitmask |= 1 << category
-        self.total_score += score
+        self.total_score += scores[dice][category]
 
     def get_score(self):
         return self.total_score

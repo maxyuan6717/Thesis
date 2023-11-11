@@ -22,12 +22,15 @@ def get_turn_states(num_dice=5, num_sides=6, num_rolls=3):
             yield (roll, dice)
 
 
-def solve_turn_states(mask, game_values, num_dice=5, num_sides=6, num_rolls=3):
+def solve_turn_states(
+    mask: int, game_values: list[float], num_dice=5, num_sides=6, num_rolls=3
+):
     turn_actions = {}
     turn_values = {}
 
     for turn in get_turn_states(num_dice, num_sides, num_rolls):
         roll, dice = turn
+        print(roll, dice)
 
         best_action = None
         best_value = -inf
@@ -101,12 +104,12 @@ def solve_game_states(num_dice=5, num_sides=6, num_rolls=3):
 
 def main():
     game_values, turn_values, turn_actions = solve_game_states()
-    with open("game_values.pkl", "wb") as f:
-        pkl.dump(game_values, f)
-    with open("turn_values.pkl", "wb") as f:
-        pkl.dump(turn_values, f)
-    with open("turn_actions.pkl", "wb") as f:
-        pkl.dump(turn_actions, f)
+    # with open("game_values.pkl", "wb") as f:
+    #     pkl.dump(game_values, f)
+    # with open("turn_values.pkl", "wb") as f:
+    #     pkl.dump(turn_values, f)
+    # with open("turn_actions.pkl", "wb") as f:
+    #     pkl.dump(turn_actions, f)
 
 
 if __name__ == "__main__":
