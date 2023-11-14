@@ -1,13 +1,14 @@
-from dice_util import (
-    combine_dice_counts,
-)
-
 from precomputed import (
     dice_rolls,
     dice_to_keep_combos,
     scores,
     dice_probabilities,
+    rerolled_dice_combos,
+    reachable_game_states,
+    unused_categories,
 )
+from scorecard import UPPER_SCORE_THRESHOLD, UPPER_SCORE_BONUS
+
 from math import inf
 import itertools as it
 import pickle as pkl
@@ -23,14 +24,18 @@ def get_turn_states(num_dice=5, num_sides=6, num_rolls=3):
 
 
 def solve_turn_states(
-    mask: int, game_values: list[float], num_dice=5, num_sides=6, num_rolls=3
+    mask: int,
+    upper_score: int,
+    game_values: list[list[float]],
+    num_dice=5,
+    num_sides=6,
+    num_rolls=3,
 ):
     turn_actions = {}
     turn_values = {}
 
     for turn in get_turn_states(num_dice, num_sides, num_rolls):
         roll, dice = turn
-        print(roll, dice)
 
         best_action = None
         best_value = -inf
@@ -40,24 +45,36 @@ def solve_turn_states(
                 if dice_to_keep_combo == dice:
                     continue
                 value = 0.0
-                num_remaining_dice = num_dice - sum(dice_to_keep_combo)
-                for new_roll in dice_rolls[num_remaining_dice]:
-                    new_dice = combine_dice_counts(new_roll, dice_to_keep_combo)
-                    value += (
-                        dice_probabilities[new_roll] * turn_values[(roll + 1, new_dice)]
-                    )
+                for dice_probability, new_dice in rerolled_dice_combos[
+                    (roll, dice_to_keep_combo)
+                ]:
+                    value += dice_probability * turn_values[(roll + 1, new_dice)]
+
                 if value > best_value:
                     best_value = value
                     best_action = (roll, dice_to_keep_combo)
 
-        for category in range(13):
-            if mask & (1 << category):
-                continue
+        for category in unused_categories[mask]:
             new_mask = mask | (1 << category)
-            value = scores[dice][category] + game_values[new_mask]
-            if value > best_value:
-                best_value = value
-                best_action = category
+            try:
+                value = (
+                    scores[dice][category]
+                    + game_values[new_mask][
+                        min(
+                            UPPER_SCORE_THRESHOLD,
+                            int(upper_score + scores[dice][category]),
+                        )
+                        if category < 6
+                        else int(upper_score)
+                    ]
+                )
+                if value > best_value:
+                    best_value = value
+                    best_action = category
+            except Exception as error:
+                print("error:", new_mask, category, scores[dice][category], upper_score)
+                print(error)
+                raise error
 
         turn_actions[turn] = best_action
         turn_values[turn] = best_value
@@ -75,40 +92,53 @@ def get_game_states():
 
 
 def solve_game_states(num_dice=5, num_sides=6, num_rolls=3):
-    game_values = [0.0] * num_states
-    turn_values = [None] * num_states
-    turn_actions = [None] * num_states
+    game_values = [
+        [0.0 for _upper_score in range(UPPER_SCORE_THRESHOLD + 1)]
+        for _mask in range(num_states)
+    ]
+    game_values[filled_mask][UPPER_SCORE_THRESHOLD] = UPPER_SCORE_BONUS
+    turn_values = [
+        [None for _upper_score in range(UPPER_SCORE_THRESHOLD + 1)]
+        for _mask in range(num_states)
+    ]
+    turn_actions = [
+        [None for _upper_score in range(UPPER_SCORE_THRESHOLD + 1)]
+        for _mask in range(num_states)
+    ]
     progress = 0.0
     for mask in get_game_states():
-        if mask == filled_mask:
-            continue
-        _turn_actions, _turn_values = solve_turn_states(
-            mask, game_values, num_dice, num_sides, num_rolls
-        )
+        for upper_score in range(UPPER_SCORE_THRESHOLD, -1, -1):
+            if mask != filled_mask and reachable_game_states[upper_score][mask]:
+                _turn_actions, _turn_values = solve_turn_states(
+                    mask, upper_score, game_values, num_dice, num_sides, num_rolls
+                )
 
-        value = 0.0
-        for dice in dice_rolls[num_dice]:
-            value += dice_probabilities[dice] * _turn_values[(1, dice)]
+                value = 0.0
+                for dice in dice_rolls[num_dice]:
+                    value += dice_probabilities[dice] * _turn_values[(1, dice)]
 
-        game_values[mask] = value
-        turn_values[mask] = _turn_values
-        turn_actions[mask] = _turn_actions
-        progress += 1.0
+                game_values[mask][upper_score] = value
+                # turn_values[mask][upper_score] = _turn_values
+                # turn_actions[mask][upper_score] = _turn_actions
 
-        percentage = progress / num_states * 100
-        if progress % (round(num_states / 100)) == 0:
-            print(f"{int(percentage)}%")
+            progress += 1.0
+            percentage = progress / (num_states * (UPPER_SCORE_THRESHOLD + 1)) * 100
+            if (
+                progress % (round((num_states * (UPPER_SCORE_THRESHOLD + 1)) / 100))
+                == 0
+            ):
+                print(f"{int(percentage)}%")
 
     return game_values, turn_values, turn_actions
 
 
 def main():
     game_values, turn_values, turn_actions = solve_game_states()
-    # with open("game_values.pkl", "wb") as f:
-    #     pkl.dump(game_values, f)
-    # with open("turn_values.pkl", "wb") as f:
+    with open("game_values.pkl", "wb") as f:
+        pkl.dump(game_values, f)
+    # with open("turn_values_35.pkl", "wb") as f:
     #     pkl.dump(turn_values, f)
-    # with open("turn_actions.pkl", "wb") as f:
+    # with open("turn_actions_35.pkl", "wb") as f:
     #     pkl.dump(turn_actions, f)
 
 

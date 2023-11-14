@@ -35,9 +35,7 @@ class Yahtzee:
             self.roll_dice()
             while True:
                 turn_state = (self.rolls, self.dice)
-                action = player.get_action(
-                    self.score_cards[player_turn].bitmask, turn_state
-                )
+                action = player.get_action(self.score_cards[player_turn], turn_state)
                 if isinstance(action, int):
                     self.score_cards[player_turn].score(action, self.dice)
                     break
@@ -64,7 +62,7 @@ class Yahtzee:
         winning_score = 0
         winning_players = []
         for player_num in range(self.num_players):
-            player_score = self.score_cards[player_num].get_score()
+            player_score = self.score_cards[player_num].get_final_score()
             self.game_scores[player_num].append(player_score)
             if player_score > winning_score:
                 winning_score = player_score
@@ -80,6 +78,10 @@ class Yahtzee:
     def play_games(self):
         while self.games_played < self.num_games:
             self.play_game()
+            percentage = self.games_played / self.num_games * 100
+
+            if percentage > 0 and percentage % 10 == 0:
+                print(f"{int(percentage)}% done")
 
         for player_num in range(self.num_players):
             print(

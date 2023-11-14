@@ -5,19 +5,14 @@ dice_to_keep_combos = pkl.load(open("dice_to_keep_combos.pkl", "rb"))
 scores = pkl.load(open("scores.pkl", "rb"))
 dice_probabilities = pkl.load(open("dice_probabilities.pkl", "rb"))
 game_values = pkl.load(open("game_values.pkl", "rb"))
+rerolled_dice_combos = pkl.load(open("rerolled_dice_combos.pkl", "rb"))
+reachable_game_states = pkl.load(open("reachable_game_states.pkl", "rb"))
+unused_categories = pkl.load(open("unused_categories.pkl", "rb"))
 
 
 def main():
-    # print(dice_rolls)
-    # print(dice_to_keep_combos)
-    # print(scores)
-    # print(scores[(4, 1, 0, 0, 0, 0)][12])
-    # print(dice_probabilities)
-    # print out the game values
-    # for i in range(len(game_values)):
-    #     print(i, game_values[i])
-    # print(game_values[0:1000])
-    print(game_values[0], "max", max(game_values))
+    # print expected highest score of optimal 1-player game
+    print(game_values[0][0])
     pass
 
 
