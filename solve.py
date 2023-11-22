@@ -30,6 +30,7 @@ def solve_turn_states(
     num_dice=5,
     num_sides=6,
     num_rolls=3,
+    greedy=False,
 ):
     turn_actions = {}
     turn_values = {}
@@ -58,15 +59,19 @@ def solve_turn_states(
             new_mask = mask | (1 << category)
             try:
                 value = (
-                    scores[dice][category]
-                    + game_values[new_mask][
-                        min(
-                            UPPER_SCORE_THRESHOLD,
-                            int(upper_score + scores[dice][category]),
-                        )
-                        if category < 6
-                        else int(upper_score)
-                    ]
+                    (
+                        scores[dice][category]
+                        + game_values[new_mask][
+                            min(
+                                UPPER_SCORE_THRESHOLD,
+                                int(upper_score + scores[dice][category]),
+                            )
+                            if category < 6
+                            else int(upper_score)
+                        ]
+                    )
+                    if not greedy
+                    else scores[dice][category]
                 )
                 if value > best_value:
                     best_value = value
@@ -110,7 +115,13 @@ def solve_game_states(num_dice=5, num_sides=6, num_rolls=3):
         for upper_score in range(UPPER_SCORE_THRESHOLD, -1, -1):
             if mask != filled_mask and reachable_game_states[upper_score][mask]:
                 _turn_actions, _turn_values = solve_turn_states(
-                    mask, upper_score, game_values, num_dice, num_sides, num_rolls
+                    mask,
+                    upper_score,
+                    game_values,
+                    num_dice,
+                    num_sides,
+                    num_rolls,
+                    False,
                 )
 
                 value = 0.0
