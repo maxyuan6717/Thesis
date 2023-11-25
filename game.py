@@ -1,6 +1,7 @@
 from scorecard import Scorecard
 from player import Player
 from random import randint
+from dice_util import get_dice_from_counts
 
 
 class Yahtzee:
@@ -21,42 +22,53 @@ class Yahtzee:
         self.score_cards = [Scorecard() for _ in range(self.num_players)]
 
         self.player_turn = 0
-        self.dice = [0] * self.num_sides
+        self.dice_combo = [0] * self.num_sides
+        self.dice = [0] * self.num_dice
         self.rolls = 0
 
     def reset_turn(self):
         self.rolls = 0
-        self.dice = [0] * self.num_sides
+        self.dice_combo = [0] * self.num_sides
+        self.dice = [0] * self.num_dice
 
-    def play_turn(self):
+    def play_player_turn(self, player_turn, player):
+        self.player_turn = player_turn
+        self.reset_turn()
+        self.roll_dice()
+        while True:
+            turn_state = (self.rolls, self.dice_combo)
+            action = player.get_action(self.score_cards[player_turn], turn_state)
+            if isinstance(action, int):
+                self.score_cards[player_turn].score(action, self.dice_combo)
+                break
+            else:
+                self.roll_dice(action[1])
+
+    def play_player_action(self, player_turn, action):
+        if isinstance(action, int):
+            return self.score_cards[player_turn].score(action, self.dice_combo)
+        else:
+            self.roll_dice(action[1])
+            return None
+
+    def play_players_turn(self):
         for player_turn, player in enumerate(self.players):
-            self.player_turn = player_turn
-            self.reset_turn()
-            self.roll_dice()
-            while True:
-                turn_state = (self.rolls, self.dice)
-                action = player.get_action(self.score_cards[player_turn], turn_state)
-                if isinstance(action, int):
-                    self.score_cards[player_turn].score(action, self.dice)
-                    break
-                else:
-                    self.roll_dice(action[1])
-
-        pass
+            self.play_player_turn(player_turn, player)
 
     def roll_dice(self, dice_to_keep_combo: tuple[int, ...] = (0, 0, 0, 0, 0, 0)):
         num_remaining_dice = self.num_dice - sum(dice_to_keep_combo)
         new_dice_combo = list(dice_to_keep_combo)
         for _ in range(num_remaining_dice):
             new_dice_combo[randint(0, self.num_sides - 1)] += 1
-        self.dice = tuple(new_dice_combo)
+        self.dice_combo = tuple(new_dice_combo)
+        self.dice = get_dice_from_counts(self.dice_combo)
         self.rolls += 1
 
     def play_game(self):
         self.turn = 1
         self.score_cards = [Scorecard() for _ in range(self.num_players)]
         while self.turn <= 13:
-            self.play_turn()
+            self.play_players_turn()
             self.turn += 1
 
         winning_score = 0

@@ -100,6 +100,18 @@ def main():
                 continue
             unused_categories[mask].append(category)
 
+    turn_actions = {}
+    for turn in get_turn_states():
+        roll, dice = turn
+        turn_actions[turn] = []
+        if roll < 3:
+            for dice_to_keep_combo in dice_to_keep_combos[dice]:
+                if dice_to_keep_combo == dice:
+                    continue
+                turn_actions[turn].append((roll, dice_to_keep_combo))
+        for category in range(13):
+            turn_actions[turn].append(category)
+
     # print(1 - (valid / ((UPPER_SCORE_THRESHOLD + 1) * (1 << 13))), 1260 / 4096)
 
     with open("dice_rolls.pkl", "wb") as f:
@@ -116,6 +128,8 @@ def main():
         pkl.dump(reachable_game_states, f)
     with open("unused_categories.pkl", "wb") as f:
         pkl.dump(unused_categories, f)
+    with open("turn_actions.pkl", "wb") as f:
+        pkl.dump(turn_actions, f)
 
 
 if __name__ == "__main__":

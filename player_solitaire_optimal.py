@@ -12,6 +12,7 @@ turn_actions_cache = [
 class OptimalPlayer(Player):
     def __init__(self):
         super().__init__()
+        self.player_type = "optimal"
 
     def get_action(self, scorecard, turn_state):
         mask = scorecard.get_bitmask()
