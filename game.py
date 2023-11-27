@@ -49,7 +49,7 @@ class Yahtzee:
             return self.score_cards[player_turn].score(action, self.dice_combo)
         else:
             self.roll_dice(action[1])
-            return None
+            return 0
 
     def play_players_turn(self):
         for player_turn, player in enumerate(self.players):

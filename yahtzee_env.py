@@ -3,10 +3,14 @@ from gymnasium import Env, spaces
 import numpy as np
 from typing import Dict, List, Tuple
 from game import Yahtzee
+from precomputed import scores
 from player_solitaire_greedy import GreedyPlayer
+from player_random import RandomPlayer
 from player_controlled import ControlledPlayer
 from dice_util import get_dice_from_counts
 from scorecard import UPPER_SCORE_THRESHOLD, UPPER_SCORE_BONUS
+
+scores[(0, 0, 0, 0, 0, 0)] = [0 for _ in range(13)]
 
 # actions from https://github.com/villebro/pyhtzee/blob/main/pyhtzee/utils.py
 
@@ -56,6 +60,7 @@ class YahtzeeEnv(Env):
     def __init__(self):
         super().__init__()
         self.opponent = GreedyPlayer()
+        # self.opponent = RandomPlayer()
         self.game = Yahtzee(
             [
                 ControlledPlayer(),
@@ -63,6 +68,8 @@ class YahtzeeEnv(Env):
             ]
         )
         self.game.roll_dice()
+
+        self.invalid_actions = 0
 
         # max number of actions is 31 for diff combinations of rerolling 5 dice
         # and 13 for diff categories to score
@@ -93,6 +100,28 @@ class YahtzeeEnv(Env):
                 spaces.Discrete(6),  # number of dices with value 4
                 spaces.Discrete(6),  # number of dices with value 5
                 spaces.Discrete(6),  # number of dices with value 6
+                # spaces.Box(low=-1, high=5, shape=(1,), dtype=np.int16),  # aces
+                # spaces.Box(low=-1, high=10, shape=(1,), dtype=np.int16),  # twos
+                # spaces.Box(low=-1, high=15, shape=(1,), dtype=np.int16),  # threes
+                # spaces.Box(low=-1, high=20, shape=(1,), dtype=np.int16),  # fours
+                # spaces.Box(low=-1, high=25, shape=(1,), dtype=np.int16),  # fives
+                # spaces.Box(low=-1, high=30, shape=(1,), dtype=np.int16),  # sixes
+                # spaces.Box(
+                #     low=-1, high=30, shape=(1,), dtype=np.int16
+                # ),  # three of a kind
+                # spaces.Box(
+                #     low=-1, high=30, shape=(1,), dtype=np.int16
+                # ),  # four of a kind
+                # spaces.Box(low=-1, high=25, shape=(1,), dtype=np.int16),  # full house
+                # spaces.Box(
+                #     low=-1, high=30, shape=(1,), dtype=np.int16
+                # ),  # small straight
+                # spaces.Box(
+                #     low=-1, high=40, shape=(1,), dtype=np.int16
+                # ),  # large straight
+                # spaces.Box(low=-1, high=30, shape=(1,), dtype=np.int16),  # chance
+                # spaces.Box(low=-1, high=50, shape=(1,), dtype=np.int16),  # yahtzee
+                # spaces.Box(low=-1, high=35, shape=(1,), dtype=np.int16),  # upper bonus
             )
         )
 
@@ -142,6 +171,92 @@ class YahtzeeEnv(Env):
             game.dice_combo[3],
             game.dice_combo[4],
             game.dice_combo[5],
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][0]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][1]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][2]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][3]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][4]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][5]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][6]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][7]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][8]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][9]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][10]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][11]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         int(scores[game.dice_combo][12]),
+            #     ],
+            #     dtype=np.int16,
+            # ),
+            # np.array(
+            #     [
+            #         UPPER_SCORE_BONUS
+            #         if game.score_cards[0].get_upper_score() >= UPPER_SCORE_THRESHOLD
+            #         else 0
+            #     ],
+            #     dtype=np.int16,
+            # ),
         )
 
     def get_possible_actions(self):
@@ -168,10 +283,13 @@ class YahtzeeEnv(Env):
         # make action for player
         # if end of player's turn, play opponent's turn
         possible_actions = self.get_possible_actions()
-        debug_info = {}
+        debug_info = {"model_score": 0}
         if not action in possible_actions:
+            self.invalid_actions += 1
             # print("invalid action", action)
-            return self.get_observation_space(), 0, False, False, debug_info
+            # reward = -10.0
+            reward = -1.0
+            return self.get_observation_space(), reward, False, False, debug_info
 
         game = self.game
         action_to_play = action
@@ -189,30 +307,43 @@ class YahtzeeEnv(Env):
             category = action - CATEGORY_ACTION_OFFSET
             action_to_play = category
 
-        reward = game.play_player_action(0, action_to_play)
-        if reward is None:
-            # todo fix
-            reward = 0
+        additional_score = game.play_player_action(0, action_to_play)
 
         if action >= CATEGORY_ACTION_OFFSET:
             game.play_player_turn(1, self.opponent)
             game.turn += 1
             game.roll_dice()
 
-        if isinstance(action_to_play, int) and action_to_play < 6:
-            scorecard = game.score_cards[0]
-            upper_score = scorecard.get_upper_score()
-            filled_upper_categories = scorecard.get_bitmask() & ((1 << 6) - 1) == (
-                (1 << 6) - 1
-            )
-            if upper_score >= UPPER_SCORE_THRESHOLD and filled_upper_categories:
-                reward += UPPER_SCORE_BONUS
+        model_score = game.score_cards[0].get_final_score()
+        opponent_score = game.score_cards[1].get_final_score()
+
+        # incorporate both additional_score and difference between model_score and opponent_score in reward
+        # v2
+        # reward = (additional_score + model_score - opponent_score + 375.0) / 750.0
+
+        # v1
+        reward = (model_score - opponent_score) / 375.0
+
+        debug_info["model_score"] = model_score
 
         if game.turn > 13:
-            print("game over")
+            print(
+                model_score,
+                opponent_score,
+            )
+            if model_score > opponent_score:
+                print("-------------WE WONNNNNNNNNNNNN-------------")
+                debug_info["won"] = True
+                reward = 1.0
+            elif model_score < opponent_score:
+                reward = -1.0
+            else:
+                reward = 0.0
+
         return self.get_observation_space(), reward, game.turn > 13, False, debug_info
 
     def reset(self, **kwargs):
+        model_final_score = self.game.score_cards[0].get_final_score()
         self.game = Yahtzee(
             [
                 ControlledPlayer(),
@@ -220,8 +351,10 @@ class YahtzeeEnv(Env):
             ]
         )
         self.game.roll_dice()
+        print("Invalid Actions:", self.invalid_actions)
+        self.invalid_actions = 0
 
-        return self.get_observation_space(), {}
+        return self.get_observation_space(), {"model_final_score": model_final_score}
 
     def render(self, mode="human", close=False):
         pass

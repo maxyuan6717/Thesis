@@ -33,6 +33,20 @@ def flatten_state(state):
             *[state[14]],
             *[state[15]],
             *[state[16]],
+            # *state[17],
+            # *state[18],
+            # *state[19],
+            # *state[20],
+            # *state[21],
+            # *state[22],
+            # *state[23],
+            # *state[24],
+            # *state[25],
+            # *state[26],
+            # *state[27],
+            # *state[28],
+            # *state[29],
+            # *state[30],
         ]
     )
 
@@ -40,7 +54,7 @@ def flatten_state(state):
 gym.register(
     id="Yahtzee-v0",
     entry_point=YahtzeeEnv,
-    max_episode_steps=100,
+    max_episode_steps=5000,
 )
 
 env = gym.make("Yahtzee-v0")
@@ -79,15 +93,21 @@ class ReplayMemory(object):
 class DQN(nn.Module):
     def __init__(self, input_size, output_size):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(input_size, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, output_size)
+
+        layer_sizes = [input_size, 128, 500, 128, output_size]
+
+        self.layer1 = nn.Linear(layer_sizes[0], layer_sizes[1])
+        self.layer2 = nn.Linear(layer_sizes[1], layer_sizes[2])
+        self.layer3 = nn.Linear(layer_sizes[2], layer_sizes[3])
+        self.layer4 = nn.Linear(layer_sizes[3], layer_sizes[4])
 
     def forward(self, x):
         x = x.float()
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        return self.layer3(x)
+        x = F.relu(self.layer3(x))
+        return self.layer4(x)
+        # return self.layer3(x)
 
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
@@ -97,11 +117,11 @@ class DQN(nn.Module):
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the ``AdamW`` optimizer
-BATCH_SIZE = 128
+BATCH_SIZE = 500
 GAMMA = 0.99
 EPS_START = 0.9
 EPS_END = 0.05
-EPS_DECAY = 1000
+EPS_DECAY = 5000
 TAU = 0.005
 LR = 1e-4
 
@@ -114,7 +134,7 @@ state = flatten_state(state)
 
 n_observations = len(state)
 
-print(n_observations, n_actions)
+print("neural network dimensions", n_observations, n_actions)
 
 policy_net = DQN(n_observations, n_actions).to(device)
 target_net = DQN(n_observations, n_actions).to(device)
@@ -147,6 +167,8 @@ def select_action(state):
 
 
 episode_durations = []
+scores = []
+num_wins = 0
 
 
 def plot_durations(show_result=False):
@@ -163,6 +185,28 @@ def plot_durations(show_result=False):
     # Take 100 episode averages and plot them too
     if len(durations_t) >= 100:
         means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
+        means = torch.cat((torch.zeros(99), means))
+        plt.plot(means.numpy())
+
+    plt.pause(0.001)  # pause a bit so that plots are updated
+    if is_ipython:
+        if not show_result:
+            display.display(plt.gcf())
+            display.clear_output(wait=True)
+        else:
+            display.display(plt.gcf())
+
+    # new figure for scores
+    plt.figure(2)
+    scores_t = torch.tensor(scores, dtype=torch.float)
+    plt.clf()
+    plt.title("Scores")
+    plt.xlabel("Episode")
+    plt.ylabel("Score")
+    plt.plot(scores_t.numpy())
+    # Take 100 episode averages and plot them too
+    if len(scores_t) >= 100:
+        means = scores_t.unfold(0, 100, 1).mean(1).view(-1)
         means = torch.cat((torch.zeros(99), means))
         plt.plot(means.numpy())
 
@@ -229,7 +273,7 @@ def optimize_model():
 if torch.cuda.is_available():
     num_episodes = 600
 else:
-    num_episodes = 50
+    num_episodes = 10000
 
 for i_episode in range(num_episodes):
     # Initialize the environment and get it's state
@@ -238,7 +282,7 @@ for i_episode in range(num_episodes):
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
     for t in count():
         action = select_action(state)
-        observation, reward, terminated, truncated, _ = env.step(action.item())
+        observation, reward, terminated, truncated, info = env.step(action.item())
         # print(observation)
         observation = flatten_state(observation)
         reward = torch.tensor([reward], device=device)
@@ -272,10 +316,16 @@ for i_episode in range(num_episodes):
 
         if done:
             episode_durations.append(t + 1)
+            scores.append(info["model_score"])
+
+            if "won" in info:
+                num_wins += 1
+
             plot_durations()
             break
 
 print("Complete")
+print("won", num_wins)
 plot_durations(show_result=True)
 plt.ioff()
 plt.show()
