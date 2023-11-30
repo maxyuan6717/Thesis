@@ -14,7 +14,6 @@ turn_actions = pkl.load(open("turn_actions.pkl", "rb"))
 def main():
     # print expected highest score of optimal 1-player game
     print(game_values[0][0])
-    print(scores[(0, 0, 0, 0, 0, 0)])
 
 
 if __name__ == "__main__":

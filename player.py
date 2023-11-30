@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from scorecard import Scorecard
 
 
 class Player(ABC):
@@ -7,5 +6,5 @@ class Player(ABC):
         pass
 
     @abstractmethod
-    def get_action(self, scorecard: Scorecard, turn_state: tuple[int, tuple[int, ...]]):
+    def get_action(self, game):
         pass

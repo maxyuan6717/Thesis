@@ -6,5 +6,5 @@ class ControlledPlayer(Player):
         super().__init__()
         self.player_type = "controlled"
 
-    def get_action(self, scorecard, turn_state):
+    def get_action(self, game):
         pass

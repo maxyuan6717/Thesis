@@ -56,6 +56,180 @@ def get_dice_one_hot_encoding(dice_value: int) -> np.ndarray:
     )
 
 
+def game_to_observation_space(game: Yahtzee, player_turn=0) -> Tuple:
+    return (
+        game.score_cards[player_turn].get_bitmask_np_array(),  # our scorecard,
+        np.array(
+            [float(game.score_cards[player_turn].get_upper_score()) / 63],
+            dtype=np.float32,
+        ),  # our upper score normalized by dividing by 63
+        game.score_cards[
+            game.num_players - 1 - player_turn
+        ].get_bitmask_np_array(),  # opponent scorecard,
+        np.array(
+            [
+                float(
+                    game.score_cards[
+                        game.num_players - 1 - player_turn
+                    ].get_upper_score()
+                )
+                / 63
+            ],
+            dtype=np.float32,
+        ),  # their upper score normalized by dividing by 63
+        game.score_cards[player_turn].get_final_score()
+        - game.score_cards[
+            1
+        ].get_final_score(),  # score difference between us and opponent
+        np.array(
+            [
+                1 if game.rolls == 1 else 0,
+                1 if game.rolls == 2 else 0,
+                1 if game.rolls == 3 else 0,
+            ]
+        ),  # one hot encoding of which roll we are on
+        get_dice_one_hot_encoding(
+            game.dice[0]
+        ),  # one hot encoding of dice values for dice 1
+        get_dice_one_hot_encoding(
+            game.dice[1]
+        ),  # one hot encoding of dice values for dice 2
+        get_dice_one_hot_encoding(
+            game.dice[2]
+        ),  # one hot encoding of dice values for dice 3
+        get_dice_one_hot_encoding(
+            game.dice[3]
+        ),  # one hot encoding of dice values for dice 4
+        get_dice_one_hot_encoding(
+            game.dice[4]
+        ),  # one hot encoding of dice values for dice 5
+        game.dice_combo[0],
+        game.dice_combo[1],
+        game.dice_combo[2],
+        game.dice_combo[3],
+        game.dice_combo[4],
+        game.dice_combo[5],
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][0]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][1]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][2]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][3]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][4]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][5]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][6]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][7]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][8]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][9]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][10]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][11]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         int(scores[game.dice_combo][12]),
+        #     ],
+        #     dtype=np.int16,
+        # ),
+        # np.array(
+        #     [
+        #         UPPER_SCORE_BONUS
+        #         if game.score_cards[player_turn].get_upper_score() >= UPPER_SCORE_THRESHOLD
+        #         else 0
+        #     ],
+        #     dtype=np.int16,
+        # ),
+    )
+
+
+def get_possible_actions(game: Yahtzee, player_turn=0):
+    possible_actions = []
+    if game.rolls < 3:
+        possible_actions.extend(list(range(CATEGORY_ACTION_OFFSET)))
+
+    for category in range(13):
+        mask = game.score_cards[player_turn].get_bitmask()
+        if mask & (1 << category):
+            continue
+        possible_actions.append(category + CATEGORY_ACTION_OFFSET)
+
+    return possible_actions
+
+
+def get_action_to_play(game: Yahtzee, action: int):
+    if action < CATEGORY_ACTION_OFFSET:
+        dice_to_keep_combo = [0, 0, 0, 0, 0, 0]
+        dice = game.dice
+        mask = action_to_dice_roll_map[action]
+        for i in range(5):
+            if mask[i]:
+                dice_to_keep_combo[dice[i] - 1] += 1
+
+        action_to_play = (game.rolls, tuple(dice_to_keep_combo))
+
+    else:
+        category = action - CATEGORY_ACTION_OFFSET
+        action_to_play = int(category)
+
+    return action_to_play
+
+
 class YahtzeeEnv(Env):
     def __init__(self):
         super().__init__()
@@ -125,187 +299,24 @@ class YahtzeeEnv(Env):
             )
         )
 
-    def get_observation_space(self):
-        game = self.game
-
-        return (
-            game.score_cards[0].get_bitmask_np_array(),  # our scorecard,
-            np.array(
-                [float(game.score_cards[0].get_upper_score()) / 63],
-                dtype=np.float32,
-            ),  # our upper score normalized by dividing by 63
-            game.score_cards[1].get_bitmask_np_array(),  # opponent scorecard,
-            np.array(
-                [float(game.score_cards[1].get_upper_score()) / 63],
-                dtype=np.float32,
-            ),  # their upper score normalized by dividing by 63
-            game.score_cards[0].get_final_score()
-            - game.score_cards[
-                1
-            ].get_final_score(),  # score difference between us and opponent
-            np.array(
-                [
-                    1 if game.rolls == 1 else 0,
-                    1 if game.rolls == 2 else 0,
-                    1 if game.rolls == 3 else 0,
-                ]
-            ),  # one hot encoding of which roll we are on
-            get_dice_one_hot_encoding(
-                game.dice[0]
-            ),  # one hot encoding of dice values for dice 1
-            get_dice_one_hot_encoding(
-                game.dice[1]
-            ),  # one hot encoding of dice values for dice 2
-            get_dice_one_hot_encoding(
-                game.dice[2]
-            ),  # one hot encoding of dice values for dice 3
-            get_dice_one_hot_encoding(
-                game.dice[3]
-            ),  # one hot encoding of dice values for dice 4
-            get_dice_one_hot_encoding(
-                game.dice[4]
-            ),  # one hot encoding of dice values for dice 5
-            game.dice_combo[0],
-            game.dice_combo[1],
-            game.dice_combo[2],
-            game.dice_combo[3],
-            game.dice_combo[4],
-            game.dice_combo[5],
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][0]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][1]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][2]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][3]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][4]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][5]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][6]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][7]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][8]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][9]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][10]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][11]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         int(scores[game.dice_combo][12]),
-            #     ],
-            #     dtype=np.int16,
-            # ),
-            # np.array(
-            #     [
-            #         UPPER_SCORE_BONUS
-            #         if game.score_cards[0].get_upper_score() >= UPPER_SCORE_THRESHOLD
-            #         else 0
-            #     ],
-            #     dtype=np.int16,
-            # ),
-        )
-
-    def get_possible_actions(self):
-        game = self.game
-        possible_actions = []
-        if game.rolls < 3:
-            possible_actions.extend(list(range(CATEGORY_ACTION_OFFSET)))
-
-        for category in range(13):
-            mask = game.score_cards[0].get_bitmask()
-            if mask & (1 << category):
-                continue
-            possible_actions.append(category + CATEGORY_ACTION_OFFSET)
-
-        return possible_actions
-
     def sample_action(self):
         # somehow convert action to an int from 0 to 43
-        possible_actions = self.get_possible_actions()
+        possible_actions = get_possible_actions(self.game)
 
         return np.random.choice(possible_actions)
 
     def step(self, action: int):
         # make action for player
         # if end of player's turn, play opponent's turn
-        possible_actions = self.get_possible_actions()
+        game = self.game
+        possible_actions = get_possible_actions(game)
         debug_info = {"model_score": 0}
         if not action in possible_actions:
             self.invalid_actions += 1
-            # print("invalid action", action)
-            # reward = -10.0
             reward = -1.0
-            return self.get_observation_space(), reward, False, False, debug_info
+            return game_to_observation_space(game), reward, False, False, debug_info
 
-        game = self.game
-        action_to_play = action
-        if action < CATEGORY_ACTION_OFFSET:
-            dice_to_keep_combo = [0, 0, 0, 0, 0, 0]
-            dice = game.dice
-            mask = action_to_dice_roll_map[action]
-            for i in range(5):
-                if mask[i]:
-                    dice_to_keep_combo[dice[i] - 1] += 1
-
-            action_to_play = (game.rolls, tuple(dice_to_keep_combo))
-
-        else:
-            category = action - CATEGORY_ACTION_OFFSET
-            action_to_play = category
+        action_to_play = get_action_to_play(game, action)
 
         additional_score = game.play_player_action(0, action_to_play)
 
@@ -317,12 +328,17 @@ class YahtzeeEnv(Env):
         model_score = game.score_cards[0].get_final_score()
         opponent_score = game.score_cards[1].get_final_score()
 
+        # v1
+        reward = (model_score - opponent_score) / 375.0
+
         # incorporate both additional_score and difference between model_score and opponent_score in reward
         # v2
         # reward = (additional_score + model_score - opponent_score + 375.0) / 750.0
 
-        # v1
-        reward = (model_score - opponent_score) / 375.0
+        # v3
+        # reward = model_score
+        # if action < CATEGORY_ACTION_OFFSET:
+        #     reward = 0.0
 
         debug_info["model_score"] = model_score
 
@@ -337,10 +353,18 @@ class YahtzeeEnv(Env):
                 reward = 1.0
             elif model_score < opponent_score:
                 reward = -1.0
+                pass
             else:
                 reward = 0.0
+                pass
 
-        return self.get_observation_space(), reward, game.turn > 13, False, debug_info
+        return (
+            game_to_observation_space(game),
+            reward,
+            game.turn > 13,
+            False,
+            debug_info,
+        )
 
     def reset(self, **kwargs):
         model_final_score = self.game.score_cards[0].get_final_score()
@@ -354,7 +378,9 @@ class YahtzeeEnv(Env):
         print("Invalid Actions:", self.invalid_actions)
         self.invalid_actions = 0
 
-        return self.get_observation_space(), {"model_final_score": model_final_score}
+        return game_to_observation_space(self.game), {
+            "model_final_score": model_final_score
+        }
 
     def render(self, mode="human", close=False):
         pass

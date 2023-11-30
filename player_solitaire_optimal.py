@@ -14,7 +14,10 @@ class OptimalPlayer(Player):
         super().__init__()
         self.player_type = "optimal"
 
-    def get_action(self, scorecard, turn_state):
+    def get_action(self, game):
+        player_turn = game.player_turn
+        turn_state = (game.rolls, game.dice_combo)
+        scorecard = game.score_cards[player_turn]
         mask = scorecard.get_bitmask()
         upper_score = scorecard.get_upper_score()
         turn_actions = turn_actions_cache[mask][upper_score]

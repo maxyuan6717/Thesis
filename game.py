@@ -37,7 +37,7 @@ class Yahtzee:
         self.roll_dice()
         while True:
             turn_state = (self.rolls, self.dice_combo)
-            action = player.get_action(self.score_cards[player_turn], turn_state)
+            action = player.get_action(self)
             if isinstance(action, int):
                 self.score_cards[player_turn].score(action, self.dice_combo)
                 break
