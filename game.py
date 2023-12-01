@@ -26,6 +26,8 @@ class Yahtzee:
         self.dice = [0] * self.num_dice
         self.rolls = 0
 
+        self.tot_category_scores = [0 for _ in range(13)]
+
     def reset_turn(self):
         self.rolls = 0
         self.dice_combo = [0] * self.num_sides
@@ -39,7 +41,8 @@ class Yahtzee:
             turn_state = (self.rolls, self.dice_combo)
             action = player.get_action(self)
             if isinstance(action, int):
-                self.score_cards[player_turn].score(action, self.dice_combo)
+                score = self.score_cards[player_turn].score(action, self.dice_combo)
+                self.tot_category_scores[action] += score
                 break
             else:
                 self.roll_dice(action[1])

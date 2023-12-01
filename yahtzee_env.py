@@ -79,7 +79,7 @@ def game_to_observation_space(game: Yahtzee, player_turn=0) -> Tuple:
         ),  # their upper score normalized by dividing by 63
         game.score_cards[player_turn].get_final_score()
         - game.score_cards[
-            1
+            game.num_players - 1 - player_turn
         ].get_final_score(),  # score difference between us and opponent
         np.array(
             [
@@ -300,7 +300,6 @@ class YahtzeeEnv(Env):
         )
 
     def sample_action(self):
-        # somehow convert action to an int from 0 to 43
         possible_actions = get_possible_actions(self.game)
 
         return np.random.choice(possible_actions)
@@ -384,3 +383,41 @@ class YahtzeeEnv(Env):
 
     def render(self, mode="human", close=False):
         pass
+
+
+def flatten_state(state):
+    return np.array(
+        [
+            *state[0],
+            *state[1],
+            *state[2],
+            *state[3],
+            *[state[4]],
+            *state[5],
+            *state[6],
+            *state[7],
+            *state[8],
+            *state[9],
+            *state[10],
+            *[state[11]],
+            *[state[12]],
+            *[state[13]],
+            *[state[14]],
+            *[state[15]],
+            *[state[16]],
+            # *state[17],
+            # *state[18],
+            # *state[19],
+            # *state[20],
+            # *state[21],
+            # *state[22],
+            # *state[23],
+            # *state[24],
+            # *state[25],
+            # *state[26],
+            # *state[27],
+            # *state[28],
+            # *state[29],
+            # *state[30],
+        ]
+    )

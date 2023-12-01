@@ -11,45 +11,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from yahtzee_env import YahtzeeEnv
 
-
-def flatten_state(state):
-    return np.array(
-        [
-            *state[0],
-            *state[1],
-            *state[2],
-            *state[3],
-            *[state[4]],
-            *state[5],
-            *state[6],
-            *state[7],
-            *state[8],
-            *state[9],
-            *state[10],
-            *[state[11]],
-            *[state[12]],
-            *[state[13]],
-            *[state[14]],
-            *[state[15]],
-            *[state[16]],
-            # *state[17],
-            # *state[18],
-            # *state[19],
-            # *state[20],
-            # *state[21],
-            # *state[22],
-            # *state[23],
-            # *state[24],
-            # *state[25],
-            # *state[26],
-            # *state[27],
-            # *state[28],
-            # *state[29],
-            # *state[30],
-        ]
-    )
+# from yahtzee_env import YahtzeeEnv, flatten_state
+from yahtzee_env_updated import YahtzeeEnv, flatten_state
 
 
 class ReplayMemory(object):
@@ -72,6 +36,7 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
 
         layer_sizes = [input_size, 128, 500, 128, output_size]
+        # layer_sizes = [input_size, 50, 100, 50, output_size]
 
         self.layer1 = nn.Linear(layer_sizes[0], layer_sizes[1])
         self.layer2 = nn.Linear(layer_sizes[1], layer_sizes[2])
@@ -265,10 +230,12 @@ def main():
         torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
         optimizer.step()
 
+    # NUM EPISODES ----------------------------------------------------------------------------------------------------------------------
+
     if torch.cuda.is_available():
         num_episodes = 600
     else:
-        num_episodes = 15000
+        num_episodes = 5000
 
     for i_episode in range(num_episodes):
         # Initialize the environment and get it's state
