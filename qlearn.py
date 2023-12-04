@@ -103,6 +103,12 @@ def main():
     print("neural network dimensions", n_observations, n_actions)
 
     policy_net = DQN(n_observations, n_actions).to(device)
+
+    init_weights_path = None
+    # init_weights_path = "./model_38_23_2023-11-30_18-24-17.pt"
+    if init_weights_path is not None:
+        policy_net.load_state_dict(torch.load(init_weights_path))
+
     target_net = DQN(n_observations, n_actions).to(device)
     target_net.load_state_dict(policy_net.state_dict())
 
@@ -235,7 +241,7 @@ def main():
     if torch.cuda.is_available():
         num_episodes = 600
     else:
-        num_episodes = 5000
+        num_episodes = 10000
 
     for i_episode in range(num_episodes):
         # Initialize the environment and get it's state

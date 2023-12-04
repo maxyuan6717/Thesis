@@ -2,8 +2,6 @@ from player import Player
 from precomputed import turn_actions
 from random import randint
 
-turn_actions_cache = [None for _mask in range(1 << 13)]
-
 
 class RandomPlayer(Player):
     def __init__(self):

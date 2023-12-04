@@ -73,7 +73,7 @@ def get_possible_actions(game: Yahtzee, player_turn=0):
     return possible_actions
 
 
-def get_action_from_meta_action(game: Yahtzee, meta_action: int, player_turn=0):
+def get_action_from_meta_action(game: Yahtzee, meta_action: int):
     if meta_action >= CATEGORY_ACTION_OFFSET:
         return meta_action - CATEGORY_ACTION_OFFSET
 
@@ -103,7 +103,7 @@ def get_action_from_meta_action(game: Yahtzee, meta_action: int, player_turn=0):
         max_dice = 0
         max_dice_val = 0
         for dice_val, num_dice in enumerate(dice_combo):
-            if num_dice > max_dice:
+            if num_dice >= max_dice:
                 max_dice = num_dice
                 max_dice_val = dice_val
         dice_to_keep_combo[max_dice_val] = max_dice
@@ -136,12 +136,12 @@ def get_action_from_meta_action(game: Yahtzee, meta_action: int, player_turn=0):
             second_max_dice = 0
             second_max_dice_val = -1
             for dice_val, num_dice in enumerate(dice_combo):
-                if num_dice > max_dice:
+                if num_dice >= max_dice:
                     second_max_dice = max_dice
                     second_max_dice_val = max_dice_val
                     max_dice = num_dice
                     max_dice_val = dice_val
-                elif num_dice > second_max_dice:
+                elif num_dice >= second_max_dice:
                     second_max_dice = num_dice
                     second_max_dice_val = dice_val
 
@@ -151,6 +151,7 @@ def get_action_from_meta_action(game: Yahtzee, meta_action: int, player_turn=0):
             if second_max_dice_val >= 0:
                 dice_to_keep_combo[second_max_dice_val] = min(second_max_dice, 2)
     elif meta_action == 9:
+        # going for chance
         dice_to_keep_combo[3] = dice_combo[3]
         dice_to_keep_combo[4] = dice_combo[4]
         dice_to_keep_combo[5] = dice_combo[5]
@@ -163,8 +164,8 @@ def get_action_from_meta_action(game: Yahtzee, meta_action: int, player_turn=0):
 class YahtzeeEnv(Env):
     def __init__(self):
         super().__init__()
-        # self.opponent = RandomPlayer()
-        self.opponent = GreedyPlayer()
+        self.opponent = RandomPlayer()
+        # self.opponent = GreedyPlayer()
         # self.opponent = OptimalPlayer()
         self.game = Yahtzee(
             [
@@ -173,6 +174,11 @@ class YahtzeeEnv(Env):
             ]
         )
         self.game.roll_dice()
+
+        # p1 or p2
+        self.reward_system = "p1"
+
+        self.punish_not_rolling = False
 
         self.invalid_actions = 0
 
@@ -247,30 +253,46 @@ class YahtzeeEnv(Env):
             game.roll_dice()
 
             average_category_score = average_category_scores[action_to_play]
-            reward = (additional_score - average_category_score) / 100.0
+
+            reward = (
+                additional_score - average_category_score
+            ) / average_category_score
+
+            if self.punish_not_rolling and game.rolls < 3:
+                # we want to discourage the model from ending its turn early
+                # so we give it a negative reward for ending its turn early
+                reward -= 0.5
 
         model_score = game.score_cards[0].get_final_score()
         opponent_score = game.score_cards[1].get_final_score()
 
         debug_info["model_score"] = model_score
+        debug_info["invalid_actions"] = self.invalid_actions
 
         done = game.turn > 13
 
         if done:
-            print(
-                model_score,
-                opponent_score,
-            )
-            if model_score > opponent_score:
-                print("-------------WE WONNNNNNNNNNNNN-------------")
-                debug_info["won"] = True
-                reward = 1.0
-            elif model_score < opponent_score:
-                reward = -1.0
-                pass
+            if self.reward_system == "p1":
+                # only reward based on our score
+
+                # normalize by expected optimal score
+                reward = model_score / 245.871
             else:
-                reward = 0.0
-                pass
+                # reward based on if we won or not
+                print(
+                    model_score,
+                    opponent_score,
+                )
+                if model_score > opponent_score:
+                    # print("-------------WE WONNNNNNNNNNNNN-------------")
+                    debug_info["won"] = True
+                    reward = 1.0
+                elif model_score < opponent_score:
+                    reward = -1.0
+                    pass
+                else:
+                    reward = 0.0
+                    pass
 
         return game_to_observation(game), reward, done, False, debug_info
 

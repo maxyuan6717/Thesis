@@ -43,11 +43,11 @@ class DQNPlayer(Player):
                 break
 
         if valid_action is None:
-            # print("invalid action")
+            print("invalid action")
             valid_action = np.random.choice(possible_actions)
 
         action_to_play = get_action_from_meta_action(game, valid_action)
 
-        # print("playing:", action_to_play)
+        print("playing:", action_to_play)
 
         return action_to_play
