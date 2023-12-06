@@ -165,9 +165,9 @@ def get_action_from_meta_action(game: Yahtzee, meta_action: int):
 class YahtzeeEnv(Env):
     def __init__(self):
         super().__init__()
-        self.opponent = RandomPlayer()
+        # self.opponent = RandomPlayer()
         # self.opponent = GreedyPlayer()
-        # self.opponent = OptimalPlayer()
+        self.opponent = OptimalPlayer()
         self.game = Yahtzee(
             [
                 ControlledPlayer(),
@@ -177,7 +177,7 @@ class YahtzeeEnv(Env):
         self.game.roll_dice()
 
         # p1 or p2 or fixed or p2_gradient or flex
-        self.reward_system = "flex"
+        self.reward_system = "p2_gradient"
         self.fixed_score_goal = 110
 
         # start with 120 as highest
@@ -335,7 +335,12 @@ class YahtzeeEnv(Env):
                 else:
                     reward = 0.0
             elif self.reward_system == "p2_gradient":
-                reward = (model_score - opponent_score) / 100.0
+                if model_score > opponent_score:
+                    reward = 1.0
+                elif model_score < opponent_score:
+                    reward = (model_score - opponent_score) / 50.0
+                else:
+                    reward = 0.0
             elif self.reward_system == "flex":
                 goal = (
                     (20 + (self.last_100_game_sum / 100.0))
