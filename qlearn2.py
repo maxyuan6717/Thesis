@@ -132,6 +132,12 @@ class Agent:
         )
 
 
+game_score_history = []
+average_game_scores = []
+last_100_game_scores = []
+last_100_game_sum = 0
+
+
 def full_plot(title, game_score_history, eps_history, invalid_action_history):
     fig, ax = plt.subplots()
 
@@ -140,11 +146,20 @@ def full_plot(title, game_score_history, eps_history, invalid_action_history):
     twin2 = ax.twinx()
     twin2.spines.right.set_position(("axes", 1.2))
 
-    (p1,) = ax.plot(game_score_history, color="steelblue", label="Game Score")
+    x_data = range(100, len(average_game_scores) + 100)
+    y_data = average_game_scores
+
+    # show only 500 points
+    filter_size = max(1, len(x_data) // 500)
+    x_data = x_data[::filter_size]
+    y_data = y_data[::filter_size]
+
+    (p1,) = ax.plot(x_data, y_data, color="steelblue", label="Game Score")
     (p2,) = twin1.plot(eps_history, color="seagreen", label="Epsilon")
     (p3,) = twin2.plot(invalid_action_history, color="crimson", label="Invalid Actions")
 
-    fig.suptitle(title, wrap=True)
+    # add padding below title
+    fig.suptitle(title, wrap=True, y=1.2)
 
     ax.set_xlabel("Episode")
     ax.set_ylabel("Game Score")
@@ -161,32 +176,30 @@ def full_plot(title, game_score_history, eps_history, invalid_action_history):
     twin2.tick_params(axis="y", colors=p3.get_color(), **tkw)
     ax.tick_params(axis="x", **tkw)
 
-    ax.legend(handles=[p1, p2, p3])
-
-    if len(game_score_history) > 100:
-        p1_avg = np.convolve(game_score_history, np.ones(100), "valid") / 100
-        ax.plot(range(100, len(p1_avg) + 100), p1_avg, color="darkorange")
+    # put legend on top of plot
+    ax.legend(handles=[p1, p2, p3], bbox_to_anchor=(0.5, 1.25), loc="upper center")
 
     return fig
-
-
-game_score_history = []
-average_game_scores = []
-last_100_game_scores = []
-last_100_game_sum = 0
 
 
 def update_game_score_plot(title):
     plt.clf()
     plt.title(title, wrap=True)
     plt.xlabel("Episode")
-    plt.ylabel("Game Score")
-    plt.plot(game_score_history)
+    plt.ylabel("Average Game Score")
 
     if len(game_score_history) > 100:
+        x_data = range(100, len(average_game_scores) + 100)
+        y_data = average_game_scores
+
+        # show only 500 points
+        filter_size = max(1, len(x_data) // 500)
+        x_data = x_data[::filter_size]
+        y_data = y_data[::filter_size]
+
         plt.plot(
-            range(100, len(average_game_scores) + 100),
-            average_game_scores,
+            x_data,
+            y_data,
             color="darkorange",
         )
 
@@ -213,26 +226,28 @@ def main():
     n_observations = len(state)
 
     agent = Agent(
-        gamma=0.95,
+        gamma=0.99,
         epsilon=0.9,
-        eps_end=0.01,
-        eps_decay=0.9997,
-        lr=0.002,
+        # try .1 min
+        eps_end=0.1,
+        eps_decay=0.9998,
+        lr=0.001,
         input_size=n_observations,
         memory_size=20000,
-        batch_size=1000,
+        batch_size=200,
         output_size=n_actions,
     )
     scores, eps_history, invalid_action_history = [], [], []
     num_wins = 0
-    num_games = 10000
+    num_games = 50000
 
     # set up matplotlib
     is_ipython = "inline" in matplotlib.get_backend()
     if is_ipython:
         from IPython import display
-    plot_title = f"Training against {opponent_type}...gamma={agent.gamma}, lr={agent.lr}, eps_decay={agent.eps_decay}, mem_size={agent.memory_size}, batch_size={agent.batch_size}, reward={reward_system}, punish early category={punish_not_rolling}"
+    plot_title = f"DQN1 Training against {opponent_type}...gamma={agent.gamma}, lr={agent.lr}, eps_decay={agent.eps_decay}, mem_size={agent.memory_size}, batch_size={agent.batch_size}, reward={reward_system}, punish early category={punish_not_rolling}"
     plt.ion()
+    steps = 0
 
     print("neural network dimensions", n_observations, n_actions)
 
@@ -248,7 +263,11 @@ def main():
             score += reward
             agent.store_transition(state, action, reward, new_state, done)
             state = new_state
-            agent.learn()
+
+            if steps == 0:
+                agent.learn()
+
+            steps = (steps + 1) % 4
 
             if done:
                 game_score_history.append(info["model_score"])
@@ -280,16 +299,16 @@ def main():
 
     torch.save(
         agent.Q_eval.state_dict(),
-        f"models/model_{n_observations}_{n_actions}_opponent={opponent_type}_gamma={agent.gamma}_lr={agent.lr}_eps_decay={agent.eps_decay}_mem_size={agent.memory_size}_batch_size={agent.batch_size}_reward={reward_system}_punish={punish_not_rolling}_{time.strftime('%Y-%m-%d_%H-%M-%S')}.pt",
+        f"models/model_{n_observations}_{n_actions}_opponent={opponent_type}_gamma={agent.gamma}_lr={agent.lr}_eps_decay={agent.eps_decay}_mem_size={agent.memory_size}_batch_size={agent.batch_size}_reward={reward_system}_punish={punish_not_rolling}_{time.strftime('%Y-%m-%d_%H-%M-%S')}_dqn1.pt",
     )
-
-    plt.clf()
 
     # full plot of game score, epsilon, and invalid actions
     fig = full_plot(plot_title, game_score_history, eps_history, invalid_action_history)
     # save the plot to file
     fig.savefig(
-        f"figures/figure_{n_observations}_{n_actions}_opponent={opponent_type}_gamma={agent.gamma}_lr={agent.lr}_eps_decay={agent.eps_decay}_mem_size={agent.memory_size}_batch_size={agent.batch_size}_reward={reward_system}_punish={punish_not_rolling}_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png"
+        f"figures/figure_{n_observations}_{n_actions}_opponent={opponent_type}_gamma={agent.gamma}_lr={agent.lr}_eps_decay={agent.eps_decay}_mem_size={agent.memory_size}_batch_size={agent.batch_size}_reward={reward_system}_punish={punish_not_rolling}_{time.strftime('%Y-%m-%d_%H-%M-%S')}_dqn1.png",
+        bbox_inches="tight",
+        dpi=300,
     )
 
     plt.ioff()

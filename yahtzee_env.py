@@ -233,8 +233,8 @@ def get_action_to_play(game: Yahtzee, action: int):
 class YahtzeeEnv(Env):
     def __init__(self):
         super().__init__()
-        self.opponent = GreedyPlayer()
-        # self.opponent = RandomPlayer()
+        # self.opponent = GreedyPlayer()
+        self.opponent = RandomPlayer()
         self.game = Yahtzee(
             [
                 ControlledPlayer(),
@@ -244,6 +244,9 @@ class YahtzeeEnv(Env):
         self.game.roll_dice()
 
         self.invalid_actions = 0
+
+        self.reward_system = "old"
+        self.punish_not_rolling = False
 
         # max number of actions is 31 for diff combinations of rerolling 5 dice
         # and 13 for diff categories to score
@@ -312,7 +315,7 @@ class YahtzeeEnv(Env):
         debug_info = {"model_score": 0}
         if not action in possible_actions:
             self.invalid_actions += 1
-            reward = -1.0
+            reward = -10.0
             return game_to_observation_space(game), reward, False, False, debug_info
 
         action_to_play = get_action_to_play(game, action)
@@ -322,6 +325,8 @@ class YahtzeeEnv(Env):
         if action >= CATEGORY_ACTION_OFFSET:
             game.play_player_turn(1, self.opponent)
             game.turn += 1
+            game.player_turn = 0
+            game.reset_turn()
             game.roll_dice()
 
         model_score = game.score_cards[0].get_final_score()
@@ -340,14 +345,15 @@ class YahtzeeEnv(Env):
         #     reward = 0.0
 
         debug_info["model_score"] = model_score
+        debug_info["invalid_actions"] = self.invalid_actions
 
         if game.turn > 13:
-            print(
-                model_score,
-                opponent_score,
-            )
+            # print(
+            #     model_score,
+            #     opponent_score,
+            # )
             if model_score > opponent_score:
-                print("-------------WE WONNNNNNNNNNNNN-------------")
+                # print("-------------WE WONNNNNNNNNNNNN-------------")
                 debug_info["won"] = True
                 reward = 1.0
             elif model_score < opponent_score:

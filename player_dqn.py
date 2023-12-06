@@ -1,9 +1,10 @@
 from player import Player
-from qlearn import DQN, flatten_state
+from qlearn import DQN
 from yahtzee_env import (
     game_to_observation_space,
     get_possible_actions,
     get_action_to_play,
+    flatten_state,
 )
 import torch
 import numpy as np

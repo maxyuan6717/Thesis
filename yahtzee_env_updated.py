@@ -148,7 +148,8 @@ def get_action_from_meta_action(game: Yahtzee, meta_action: int):
             if max_dice_val >= 0:
                 dice_to_keep_combo[max_dice_val] = min(max_dice, 3)
 
-            if second_max_dice_val >= 0:
+            # maybe do > 1
+            if second_max_dice_val >= 1:
                 dice_to_keep_combo[second_max_dice_val] = min(second_max_dice, 2)
     elif meta_action == 9:
         # going for chance
@@ -175,12 +176,20 @@ class YahtzeeEnv(Env):
         )
         self.game.roll_dice()
 
-        # p1 or p2
-        self.reward_system = "p1"
+        # p1 or p2 or fixed or p2_gradient or flex
+        self.reward_system = "flex"
+        self.fixed_score_goal = 110
+
+        # start with 120 as highest
+        self.last_100_game_scores = []
+        self.last_100_game_sum = 0
+        self.step_count = 0
 
         self.punish_not_rolling = False
 
         self.invalid_actions = 0
+
+        self.debug_mode = False
 
         # 0-5 are going for specific dice values
         # 6 is going for as many of a specific dice value as possible
@@ -230,19 +239,40 @@ class YahtzeeEnv(Env):
 
         return np.random.choice(possible_actions)
 
+    def debug(self, *message):
+        if self.debug_mode:
+            print(*message)
+
     def step(self, action: int):
         game = self.game
         possible_actions = get_possible_actions(game)
         debug_info = {"model_score": 0}
 
+        self.debug("START STEP--------------")
+        self.debug(
+            "GAME STATE:",
+            "TURN:",
+            game.turn,
+            "| ROLLS:",
+            game.rolls,
+            "| DICE:",
+            game.dice_combo,
+            "| SCORECARD:",
+            game.score_cards[0].get_mask_string(),
+        )
+
         if not action in possible_actions:
+            self.debug("INVALID META ACTION:", action)
             self.invalid_actions += 1
-            reward = -5.0
+            reward = -10.0
             return game_to_observation(game), reward, False, False, debug_info
 
         action_to_play = get_action_from_meta_action(game, action)
 
+        self.debug("PLAYING META ACTION:", action, "| ACTION:", action_to_play)
+
         additional_score = game.play_player_action(0, action_to_play)
+        self.debug("GOT SCORE:", additional_score)
         reward = 0.0
 
         # if we scored a category, we are done with our turn
@@ -250,18 +280,22 @@ class YahtzeeEnv(Env):
         if isinstance(action_to_play, int):
             game.play_player_turn(1, self.opponent)
             game.turn += 1
+            game.player_turn = 0
+            game.reset_turn()
             game.roll_dice()
 
             average_category_score = average_category_scores[action_to_play]
 
             reward = (
-                additional_score - average_category_score
-            ) / average_category_score
+                0.1
+                * (additional_score - average_category_score)
+                / average_category_score
+            )
 
             if self.punish_not_rolling and game.rolls < 3:
                 # we want to discourage the model from ending its turn early
                 # so we give it a negative reward for ending its turn early
-                reward -= 0.5
+                reward = -1000.0
 
         model_score = game.score_cards[0].get_final_score()
         opponent_score = game.score_cards[1].get_final_score()
@@ -277,12 +311,12 @@ class YahtzeeEnv(Env):
 
                 # normalize by expected optimal score
                 reward = model_score / 245.871
-            else:
+            elif self.reward_system == "p2":
                 # reward based on if we won or not
-                print(
-                    model_score,
-                    opponent_score,
-                )
+                # print(
+                #     model_score,
+                #     opponent_score,
+                # )
                 if model_score > opponent_score:
                     # print("-------------WE WONNNNNNNNNNNNN-------------")
                     debug_info["won"] = True
@@ -293,7 +327,42 @@ class YahtzeeEnv(Env):
                 else:
                     reward = 0.0
                     pass
+            elif self.reward_system == "fixed":
+                if model_score > self.fixed_score_goal:
+                    reward = 1.0
+                elif model_score < self.fixed_score_goal:
+                    reward = -1.0
+                else:
+                    reward = 0.0
+            elif self.reward_system == "p2_gradient":
+                reward = (model_score - opponent_score) / 100.0
+            elif self.reward_system == "flex":
+                goal = (
+                    (20 + (self.last_100_game_sum / 100.0))
+                    if len(self.last_100_game_scores) == 100
+                    else 0
+                )
+                goal = max(goal, 110)
+                print("GOAL:", goal)
+                if model_score > goal:
+                    reward = 1.0
+                elif model_score < goal:
+                    reward = -1.0
+                else:
+                    reward = 0.0
 
+                # update 100 game average
+                if len(self.last_100_game_scores) < 100:
+                    self.last_100_game_scores.append(model_score)
+                    self.last_100_game_sum += model_score
+                else:
+                    self.last_100_game_sum -= self.last_100_game_scores[self.step_count]
+                    self.last_100_game_scores[self.step_count] = model_score
+                    self.last_100_game_sum += model_score
+
+                self.step_count = (self.step_count + 1) % 100
+
+        self.debug("REWARD:", reward)
         return game_to_observation(game), reward, done, False, debug_info
 
     def reset(self, **kwargs):
