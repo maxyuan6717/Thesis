@@ -166,8 +166,8 @@ class YahtzeeEnv(Env):
     def __init__(self):
         super().__init__()
         # self.opponent = RandomPlayer()
-        # self.opponent = GreedyPlayer()
-        self.opponent = OptimalPlayer()
+        self.opponent = GreedyPlayer()
+        # self.opponent = OptimalPlayer()
         self.game = Yahtzee(
             [
                 ControlledPlayer(),
@@ -338,7 +338,7 @@ class YahtzeeEnv(Env):
                 if model_score > opponent_score:
                     reward = 1.0
                 elif model_score < opponent_score:
-                    reward = (model_score - opponent_score) / 50.0
+                    reward = (model_score - opponent_score) / 100.0
                 else:
                     reward = 0.0
             elif self.reward_system == "flex":

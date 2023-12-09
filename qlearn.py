@@ -306,7 +306,7 @@ def main():
     episode_durations = []
     invalid_action_history = []
     num_wins = 0
-    num_games = 50000
+    num_games = 100000
 
     plot_title = f"DQN2 Training against {opponent_type}...gamma={agent.gamma}, lr={agent.lr}, eps_decay={agent.eps_decay}, mem_size={agent.memory_size}, batch_size={agent.batch_size}, reward={reward_system}, {f'score goal={fixed_score_goal}, ' if reward_system == 'fixed' else ''}punish early category={punish_not_rolling}"
 
