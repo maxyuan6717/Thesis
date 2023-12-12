@@ -1,0 +1,209 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[margin=1.25in]{geometry}
+\usepackage{fancyhdr}
+\usepackage{biblatex} %Imports biblatex package
+\addbibresource{references.bib} %Import the bibliography file
+
+
+\title{Thesis}
+\author{Max Yuan}
+\date{December 2023}
+
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyhead[R]{Max Yuan} % right side header
+\fancyfoot[C]{\thepage} % center footer
+\renewcommand{\headrulewidth}{0.4pt} % header line width
+\renewcommand{\footrulewidth}{0pt} % no footer line
+
+% custom comment command
+\newcommand{\comment}[1]{}
+
+
+\begin{document}
+
+% Title Page
+\begin{titlepage}
+    \thispagestyle{empty} % No headers or footers on title page
+    \centering
+    \vspace*{\stretch{1}}
+    \Huge
+    Yahtzee Title\\
+    \vspace{10mm}
+    \Large
+    Max Yuan\\
+    Advisor: Professor James Glenn\\
+    \vspace{10mm}
+    Yale University\\
+    December, 2023
+    \vspace*{\stretch{2}}
+\end{titlepage}
+
+% Abstract Page
+\newpage
+\begin{abstract}
+\noindent
+This thesis explores the development and performance of a Deep Q-Learning Network (DQN) agent designed to play the game of two-player Yahtzee. The objective is to create an AI agent that not only understands the basic rules and strategies of Yahtzee but also adapts its strategy based on the opponent's gameplay. The DQN agent is trained through reinforcement learning, where it learns optimal strategies by playing numerous games against various opponents, including deterministic rule-based agents and randomized players. The thesis evaluates the agent's performance, decision-making processes, and adaptability in diverse game scenarios. Additionally, it discusses the implications of this research in the broader context of AI's application in game theory and strategic decision-making. The findings suggest that the DQN agent not only achieves competence in playing Yahtzee but also exhibits strategic adaptability, making it a significant step in the development of AI agents capable of handling complex decision-making tasks in competitive environments.
+\end{abstract}
+
+\tableofcontents
+
+\newpage
+\section{Introduction}
+% Your introduction content here
+Yahtzee is a popular dice game that combines both strategy and luck. One interesting aspect of the game is that it can be played either by yourself or with multiple players. In the solitaire version of the game, the goal is to maximize your score, while in the multiplayer version of the game, the goal is to score higher than your opponents.
+
+At first glance, it might seem like the maximizing your expected score is optimal for both versions of the game. However, the optimal solitaire strategy is no longer optimal when you move to the multiplayer game because it is irrelevant how much you beat your opponents by—winning by 1 point is equivalent to winning by 50 points. Thus, if you are ahead early, it might be in your best interest to play conservatively to obtain a good enough score with higher probability than gunning for your maximum possible expected score. On the other hand, if you are behind, then it might be in your best interest to play aggressively for the highest possible score despite the risk.
+
+Yahtzee can be "solved" (i.e. calculating the best action for every possible state of the game) use the Markov Decision Process. In the solitaire version of the game, the number of states is low enough for today's computers to perform this calculation, and Professor James Glenn uses dynamic programming to solve solitaire Yahtzee in his paper, "An Optimal Strategy for Yahtzee" \cite{glenn}. However, when you add players to the game, the number of states increases exponentially. In this paper, I will be specifically exploring the two-player version of the game, but even still, there are too many states to calculate using dynamic programming. Instead, I will be using a Deep Q-Learning Network (DQN) agent to both grasp the fundamental rules of Yahtzee and learn to play good moves. I will also develop 3 agents playing various solitaire strategies to evaluate the variants of my DQN agent against: a random agent, a greedy agent, and an optimal agent.
+
+
+
+\comment {
+    % use in methods section instead
+    The Markov Decision Process can be applied to solve Yahtzee by calculating the best action for every possible state of the game. In the solitaire version of the game, there are roughly $2^{19}$ states to consider, which Professor James Glenn uses dynamic programming to solve in his paper, "An Optimal Strategy for Yahtzee" \cite{glenn}. However, adding players to the game exponentially increases the number of states to consider. In this paper, I will be specifically exploring the two-player version of the game, which has roughly $2^{48}$ states. ${2^{38}}$ states come from the two scorecards that we have to keep track of, each accounting for $2^{19}$ states as stated before. The remaining $2^{10}$ states come from the score difference between the two players that we now have to keep track.
+    % ----------------------------------------
+}
+
+\section{Methods}
+
+\subsection{Rules}
+
+In a game of Yahtzee, players alternate turns until everyone has filled all 13 categories on their scorecard. A player's turn starts with them rolling five traditional six-sided dice. The player can then choose any combination of the five dice to reroll, and they get up to two rerolls per turn. At any point, the player can choose to score their current dice combination in one of the empty categories on their scorecard. Once a category is filled, it cannot be changed and stays filled until the end of the game. Points are awarded to the 13 categories based on the following rules:
+
+\begin{itemize}
+    \item \textbf{Upper Section:} The upper section of the scorecard consists of six categories, each corresponding to a different dice value on a six-sided dice. The score for each category is the sum of all dice showing that value. For example, if a player has three 2s and two 5s, they can choose to score 6 points in the 2s category or 10 points in the 5s category. Furthermore, if the sum of the scores in the upper section is 63 or higher, the player gets a 35 point bonus.
+    \item \textbf{Lower Section:} The lower section of the scorecard consists of seven categories, each corresponding to a different scoring combination. The score for each category is determined by the following rules:
+    \begin{itemize}
+        \item \textbf{Three of a Kind:} Sum of all five dice if there are at least three dice with the same value. 0 points otherwise.
+        \item \textbf{Four of a Kind:} Sum of all five dice if there are at least four dice with the same value. 0 points otherwise.
+        \item \textbf{Full House:} 25 points if there are three dice with the same value and two dice with another value. 0 points otherwise.
+        \item \textbf{Small Straight:} 30 points if there are four dice with consecutive values. 0 points otherwise.
+        \item \textbf{Large Straight:} 40 points if there are five dice with consecutive values. 0 points otherwise.
+        \item \textbf{Yahtzee:} 50 points if all five dice have the same value.
+        \item \textbf{Chance:} Sum of all five dice.
+    \end{itemize}
+\end{itemize}
+
+\noindent
+One variation of Yahtzee allows players to earn a bonus of 100 points if they score a Yahtzee after already scoring a Yahtzee. This variation with "Yahtzee Bonuses" is not considered in this paper. 
+
+\subsection{Developing the Optimal Solitaire Agent}
+In order to test the performance of my DQN agent against an agent playing the optimal solitaire strategy, we need to first solve solitaire Yahtzee and obtain the expected future score for each state. Taking inspiration from Glenn's aforementioned paper, "An Optimal Strategy for Yahtzee" \cite{glenn}, our Yahtzee game state will consist of the following:
+
+\begin{itemize}
+    \item \textbf{Scorecard:} The player's scorecard represented as a bitmask of length 13. Each bit is 1 if the corresponding category is filled and 0 otherwise. Since there are 13 categories, are bitmask will range from $0$ to $2^{13} - 1$, which can seamlessly be used to index into our dp array of expected future scores.
+    \item \textbf{Upper Section Score:} The sum of the scores in the upper section of the scorecard. Since the upper score bonus threshold is 63, we can represent this as a number from $0$ to $63$. Anything above 63 is essentially equivalent to 63 in terms of expected future scrore.
+\end{itemize}
+
+\noindent
+In order to calculate the expected future score for a given game state, we need to consider every possible action that we can take in a turn starting with that game state. Our Yahtzee turn state will consist of the following:
+
+\begin{itemize}
+    \item \textbf{Roll Number:} The current roll number represented as a number from $1$ to $3$. This is used to keep track of how many times we have rolled the dice in a turn.
+    \item \textbf{Dice:} The current dice combination represented an integer tuple of length six. $Dice[index]$ represents how many dice are showing $index + 1$ pips (since the tuple is 0-indexed). For example, if we have three dice showing two pips and two dice showing five pips, then our $Dice$ tuple would be (0, 3, 0, 0, 2, 0).
+\end{itemize}
+
+\noindent
+At the start of a turn, the roll number is always one, and we could have any dice combination. Then, we can either choose a category immediately or reroll some combination of the dice. If we reroll, then our roll number increments to two, and we once again of the choice of rerolling some combination of the dice or choosing a category. If we reroll again, then our roll number increments to three, and we must choose a category to score. When we choose a category to score, our turn ends, and we get a new game state. Otherwise, when we reroll the dice, we get a new turn state.
+
+We can calculate the expected future score for a given game state by taking the weighted average of the expectations of all the turn states we could be in after the first roll. The expectations of those turn states with $Roll Number = 1$ is the $max$ between the weighted average of the expectations of all possible turn states from rerolling all possible subsets of the dice and the highest scoring unused category plus the expected future score of the game state we get from choosing that category. The expectations of those turn states with $Roll Number = 2$ is calculated similarly, and the expectations of those turn states with $Roll Number = 3$ is simply the $max$ of the highest scoring unnused category plus the expected future score of the resulting game state.
+
+The dependency of game states and turn states on future game states and turn states lends itself nicely to dynamic programming. To ensure that a future game state or turn state has definitely been calculated by the time it is needed, we iterate through the states in the following orders:
+
+\begin{itemize}
+    \item \textbf{Game States:} Iterate through the scorecard bitmasks from bitmasks with more set bits to bitmasks with fewer set bits. Specifically, we start with the bitmask with all 13 bits set to 1, move on to all bitmasks with 12 bits set to 1, $etc.$ For the upper section score, we simply iterate from 63 down to 0. 
+    \item \textbf{Turn States:} Iterate through the roll number from $3$ to $1$ and iterate over all possible dice combinations for each roll number.
+\end{itemize}
+
+\noindent
+In his paper, Glenn observes that a substantial number of the game states are unreachable and can be skipped \cite{glenn}, saving precious computational time. For example, if our scorecard bitmask has only ones filled out, then it is impossible for the upper section score to be anything higher than 5. All game states with a bitmask of 1 and an upper section score higher than 5 can be skipped. The same dynamic programming algorithm he presents is implemented in this paper to prune out over 30\% of game states.
+
+To further speed up the dynamic programming computation, the following values will be precomputed:
+
+\begin{itemize}
+    \item \textbf{Dice Rolls:} An array of all possible dice combinations for a number of dice. For example, $DiceRolls[4]$ is an array of all possible dice combinations for five dice (five because the array is 0-indexed). This array is helpful for iterating over all possble initial dice rolls.
+    \item \textbf{Dice To Keep:} A map from a dice combination to an array of all possible dice combinations that could be kept. For example, $DiceToKeep[(0, 3, 0, 0, 2, 0)]$ is an array of all possible dice combinations that could be kept if we have three dice showing two pips and two dice showing five pips. The tuple (0, 1, 0, 0, 1, 0) is an example of a dice combination that could be kept.
+    \item \textbf{Scores:} A map from a dice combination and category to the score of that category. For example, $Scores[(0, 3, 0, 0, 2, 0)][1]$ is the score of the 2s category if we have three dice showing two pips and two dice showing five pips. The score would 6.
+    \item \textbf{Dice Probabilities:} A map from a dice combination to the probability of that dice combination. For example, $DiceProbabilities[(0, 3, 0, 0, 2, 0)]$ is the probability of getting three dice showing two pips and two dice showing five pips. The probability would be $\frac{5!}{6^{5} * 3! * 2!}$.
+    \item \textbf{Rerolled Dice Combo:} A map from a dice combination that we are keeping to an array of all possible dice combinations that could result from rerolling along with their probability. For example, $RerolledDiceCombo[(0, 3, 0, 0, 1, 0)]$ is an array of all possible dice combinations that could result from rerolling if we kept three dice showing two pips and one dice showing five pips. The tuple (1, 3, 0, 0, 1, 0) is an example of a dice combination that resulted from rolling a dice showing one pip, and its corresponding probability would be $\frac{1}{6}$.
+    \item \textbf{Unused Categories:} An array of all unused categories for a given scorecard bitmask. For example, $UnusedCategories[2^13 - 2]$ is an array of all unused categories for a scorecard with bits 1111111111110. The array would be [0], meaning that only the "1s" category is unused.
+    \item \textbf{Turn Actions:} A map from a turn state to all the possible actions that can be taken. If the roll number is three, then the 13 categories are the only possible actions. Otherwise, if the roll number is less than 3, then the dice combinations that we get from $DiceToKeep$ indexed on the turn state's dice are included as other possible actions.
+\end{itemize}
+
+\noindent
+Upon completing the dynamic programming computation and obtaining the expected future score for each game state, we can now create an agent to play the optimal solitaire strategy in simulated 2-player Yahtzee games. My python implementation of Yahtzee will give the agent the current game state with their scorecard as well as their current turn state with their dice combination and roll number. The agent will then find the action with the highest expected future score and return that action. While the table of expected future scores for all game states takes up a manageable 4.8MB of memory, the table of expected future scores for all turn states takes many many gigabytes of memory, so our agent will have to recalculate the expected future score of turn states on the fly. This is not a problem, however, since the agent only has to calculate the turn states for one game state, which can be done in fractions of a second. Furthermore, the recalculated expected future scores of turn states is cached, speeding up performance as the agent plays more games.
+
+\subsection{Developing the Greedy Solitaire Agent}
+Fortunately, the greedy solitaire agent reuses the work that has been done to implement the optimal solitaire agent. Like the optimal agent, it receives the current game state and turn state. The greedy agent also has to loop over all possible actions and recalculate their expected future scores. However, while the optimal agent takes into account all future game states into its expected future score calculation, the greedy agent only takes into account the score that it will receive when it chooses a category at the end of the turn. Specifically, the optimal agent will add the expected future score of the new game state when scoring a category; the greedy agent will add zero.
+
+\subsection{Developing the Random Agent}
+The random agent simply gets the possible actions for the given turn state using the precomputed value $TurnActions$ and then filters out the categories that have already been filled out according to the scorecard bitmask from the given game state. It then randomly chooses one of the remaining actions to play.
+
+\subsection{Developing the DQN Agent}
+Deep Q-Learning (DQN) is a reinforcement learning algorithm that combines Q-Learning with deep neural networks. The core idea behind DQN is to use a neural network as a function approximator to estimate the Q-values, which are indicative of the quality of a particular action taken in a given state. This approach allows the agent to make decisions based on complex, high-dimensional input states. The DQN agent learns to optimize its behavior by interacting with the following environment and observing the resulting rewards or penalties.
+
+\subsubsection{Yahtzee Gymnasium Environment}
+My Yahtzee Gymnasium environment is a custom implementation of the Yahtzee game, designed to be compatible with the OpenAI Gym framework. The OpenAI Gym framework makes it easy to develop and test reinforcement learning algorithms by providing a standardized interface for interacting with environments. The exposed methods of a gym environment include:
+
+\begin{itemize}
+    \item \textbf{Constructor (init):} Initializes the environment and returns the initial state. In the case of Yahtzee, the initial state includes:
+    \begin{itemize}
+        \item An instance of our custom Yahtzee game
+        \item parameters for the reward system
+        \item a flag to turn on debug mode, which prints out data during training
+        \item the observation space
+        \item the action space
+    \end{itemize}
+    \item \textbf{sample\textunderscore action:} A function that samples a random action from the action space.
+    \item \textbf{step:} A function that takes in an action and returns the next state, reward, and whether the game is over.
+    \item \textbf{reset:} A function that resets the environment and returns the initial state.
+\end{itemize}
+
+\noindent
+The observation space for this Yahtzee environment is a complex combination of various game elements, including:
+
+\begin{itemize}
+    \item Bitmask representations of the player's scorecard
+    \item The player's upper score normalized to be between 0 and 1 by dividing by 63
+    \item Bitmask representations of the opponent's scorecard
+    \item The opponent's upper score normalized to be between 0 and 1 by dividing by 63
+    \item The difference between the player's score and the opponent's score normalized to be between -1 and 1 by dividing by 375
+    \item The current roll number as a one-hot encoding
+    \item The count of each dice value normalized to be between 0 and 1 by dividing by 5
+\end{itemize}
+
+\noindent
+The action space for this Yahtzee environment is set of 23 possible "meta-actions" represented as a number from 0 to 22. The meta-actions are as follows:
+
+\begin{itemize}
+    \item \textbf{0-5:} Go for a specific dice value. For example, if the meta-action is 3, then the agent will reroll all dice except for the ones showing four pips.
+    \item \textbf{6:} Go for as many of a specific dice value as possible. This is useful for going for three of a kind, four of a kind, and Yahtzee. The agent will reroll all dice except for the ones showing the most common value.
+    \item \textbf{7:} Go for a straight. The agent will reroll all dice except for the ones that are part of the longest consecutive sequence.
+    \item \textbf{8:} Go for a full house. The agent will reroll all dice except for the ones showing the two most common values.
+    \item \textbf{9:} Go for a chance. The agent will reroll all dice that are not showing four, five, or six pips in an attempt to get a high sum.
+    \item \textbf{10-22:} Go for a specific category. For example, if the meta-action is 12, then the agent will choose the 3s category to score.
+\end{itemize}
+
+\noindent
+Originally, the action space was a set of 45 possible actions, where the first 32 actions where all the possible combinations of the five dice to reroll (including the option to not reroll any dice), and the last 13 actions were all the possible categories to score. However, this action space was ineffective because the same reroll action would have different behaviors depending on the current dice combination. For example, if the agent chose to reroll the first two dice, that one action would have wildly different outcomes depending on if the first two dice were both showing one pip or if they were both showing six pips. The meta-actions solve this problem by allowing the agent to shoot for a specific dice combination or category without having to specify the exact dice to reroll.
+
+\subsubsection{Reward Function Variants}
+The problem with deciding on a reward function for 2-player Yahtzee is that the ultimate reward—whether or not the agent won—is only given at the end of the game. The intermediate actions of which dice to reroll and which categories to score contribute to the end goal of winning the game, but they themselves do not give any immediate rewards. If the only reward the agent was exposed to was the reward at the end of the game, it would be extremely inefficient for the agent to learn the intermediate strategies that lead to winning the game. Thus, we need to design a reward function that gives the agent immediate rewards for taking good actions.
+
+\subsubsection{Neural Network Architecture}
+
+
+\section{Results}
+% Your results content here
+
+\section{Discussion}
+
+
+
+\section{References}
+\printbibliography[heading=none]
+
+\end{document}

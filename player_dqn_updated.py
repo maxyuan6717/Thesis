@@ -15,9 +15,6 @@ import torch
 import numpy as np
 
 
-# model_path = "./model_38_23_2023-11-30_18-24-17.pt"
-
-
 class DQNPlayer(Player):
     def __init__(self, model_path):
         super().__init__()
