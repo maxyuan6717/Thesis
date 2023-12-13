@@ -37,31 +37,29 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
 
         layer_sizes = [input_size, 256, 256, output_size]
-        # layer_sizes = [input_size, 50, 100, 50, output_size]
 
         self.layer1 = nn.Linear(layer_sizes[0], layer_sizes[1])
         self.layer2 = nn.Linear(layer_sizes[1], layer_sizes[2])
         self.layer3 = nn.Linear(layer_sizes[2], layer_sizes[3])
 
-        # self.layer4 = nn.Linear(layer_sizes[3], layer_sizes[4])
-
     def forward(self, x):
         x = x.float()
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        # x = F.relu(self.layer3(x))
-        # return self.layer4(x)
         return self.layer3(x)
 
 
 class Agent:
-    # BATCH_SIZE is the number of transitions sampled from the replay buffer
-    # GAMMA is the discount factor as mentioned in the previous section
-    # EPS_START is the starting value of epsilon
-    # EPS_END is the final value of epsilon
-    # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
-    # TAU is the update rate of the target network
-    # LR is the learning rate of the ``AdamW`` optimizer
+    # gamma is the discount factor as mentioned in the previous section
+    # epsilon is the starting value of epsilon
+    # lr is the learning rate of the ``AdamW`` optimizer
+    # input_size is the size of the flattened observation state
+    # output_size is the number of actions
+    # memory_size is the size of the replay buffer
+    # batch_size is the number of transitions sampled from the replay buffer
+    # eps_end is the final value of epsilon
+    # eps_decay controls the rate of exponential decay of epsilon, higher means a slower decay
+    # tau is the update rate of the target network
 
     def __init__(
         self,
@@ -170,8 +168,7 @@ class Agent:
         )
 
     def update_target_net(self):
-        # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
+        # Soft update of the target network's weights to move them closer to the policy network's weights
         target_net_state_dict = self.target_net.state_dict()
         policy_net_state_dict = self.policy_net.state_dict()
         for key in policy_net_state_dict:

@@ -19,7 +19,7 @@
 
 \refsection{0}
   \datalist[entry]{nty/global//global/global}
-    \entry{glenn}{article}{}
+    \entry{glenn}{unpublished}{}
       \name{author}{1}{}{%
         {{hash=fa226c7ea01d44f36186c962133a370c}{%
            family={Glenn},
@@ -39,6 +39,32 @@
       \field{labeltitlesource}{title}
       \field{title}{An Optimal Strategy for Yahtzee}
       \field{year}{2006}
+    \endentry
+    \entry{dqn}{misc}{}
+      \name{author}{2}{}{%
+        {{hash=56bf0b340039cf8594436a624ff548a9}{%
+           family={Paszke},
+           familyi={P\bibinitperiod},
+           given={Adam},
+           giveni={A\bibinitperiod}}}%
+        {{hash=56b97afcbff5cf17ceacacabc82810be}{%
+           family={Towers},
+           familyi={T\bibinitperiod},
+           given={Mark},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{2868b7967c721e2fbd4cb72760b6411f}
+      \strng{fullhash}{2868b7967c721e2fbd4cb72760b6411f}
+      \strng{bibnamehash}{2868b7967c721e2fbd4cb72760b6411f}
+      \strng{authorbibnamehash}{2868b7967c721e2fbd4cb72760b6411f}
+      \strng{authornamehash}{2868b7967c721e2fbd4cb72760b6411f}
+      \strng{authorfullhash}{2868b7967c721e2fbd4cb72760b6411f}
+      \field{sortinit}{P}
+      \field{sortinithash}{ff3bcf24f47321b42cb156c2cc8a8422}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html}}
+      \field{title}{Reinforcemnt Learning (DQN) Tutorial}
     \endentry
   \enddatalist
 \endrefsection

@@ -3,7 +3,13 @@
 \usepackage[margin=1.25in]{geometry}
 \usepackage{fancyhdr}
 \usepackage{biblatex} %Imports biblatex package
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{subfig}
+\usepackage{caption}
 \addbibresource{references.bib} %Import the bibliography file
+\graphicspath{ {./images/} } % Directory where figures are stored 
 
 
 \title{Thesis}
@@ -143,7 +149,30 @@ Fortunately, the greedy solitaire agent reuses the work that has been done to im
 The random agent simply gets the possible actions for the given turn state using the precomputed value $TurnActions$ and then filters out the categories that have already been filled out according to the scorecard bitmask from the given game state. It then randomly chooses one of the remaining actions to play.
 
 \subsection{Developing the DQN Agent}
-Deep Q-Learning (DQN) is a reinforcement learning algorithm that combines Q-Learning with deep neural networks. The core idea behind DQN is to use a neural network as a function approximator to estimate the Q-values, which are indicative of the quality of a particular action taken in a given state. This approach allows the agent to make decisions based on complex, high-dimensional input states. The DQN agent learns to optimize its behavior by interacting with the following environment and observing the resulting rewards or penalties.
+Deep Q-Learning (DQN) is a reinforcement learning algorithm that combines Q-Learning with deep neural networks. The goal of Q-Learning is to find a function 
+
+\begin{center}
+    $Q^*: State \times Action \rightarrow \mathbb{R}$
+\end{center}
+
+\noindent
+$Q^*$ tells us our reward for a given state and action. We could then use $Q^*$ to construct the optimal policy $\pi^*$, where
+
+\begin{center}
+    $\pi^*(s) = \underset{a \in A}{argmax} \; Q^*(s, a)$
+\end{center}
+
+\noindent
+However, since the state space is far too large for us to know $Q^*$, we instead use function $Q$ that approximates $Q^*$, where
+
+\begin{center}
+    $Q(s, a) = r(s, a) + \gamma \; \underset{a' \in A}{max} \; Q(s', a')$
+\end{center}
+
+\noindent
+$r$ is the reward function, $\gamma$ is the discount factor, and $s'$ is the next state.
+
+The core idea behind DQN is to use a neural network as a function approximator for $Q$ to estimate the Q-values, which are indicative of the quality of a particular action taken in a given state. This approach allows the agent to make decisions based on complex, high-dimensional input states. The DQN agent learns to optimize its behavior by interacting with the following environment and observing the resulting rewards or penalties.
 
 \subsubsection{Yahtzee Gymnasium Environment}
 My Yahtzee Gymnasium environment is a custom implementation of the Yahtzee game, designed to be compatible with the OpenAI Gym framework. The OpenAI Gym framework makes it easy to develop and test reinforcement learning algorithms by providing a standardized interface for interacting with environments. The exposed methods of a gym environment include:
@@ -193,15 +222,185 @@ Originally, the action space was a set of 45 possible actions, where the first 3
 \subsubsection{Reward Function Variants}
 The problem with deciding on a reward function for 2-player Yahtzee is that the ultimate reward—whether or not the agent won—is only given at the end of the game. The intermediate actions of which dice to reroll and which categories to score contribute to the end goal of winning the game, but they themselves do not give any immediate rewards. If the only reward the agent was exposed to was the reward at the end of the game, it would be extremely inefficient for the agent to learn the intermediate strategies that lead to winning the game. Thus, we need to design a reward function that gives the agent immediate rewards for taking good actions.
 
-\subsubsection{Neural Network Architecture}
+I ultimately settled on an intermediate reward function that compares the score the agent obtained from choosing a category to the average score an optimal agent would have obtained from choosing that category. To obtain the average category score achieved by an optimal solitaire player, I had my optimal solitaire agent play 1000 games and obtained the following rough averages:
 
+\begin{center}
+    \begin{tabular}{ |c|c| }
+        \hline
+        Category & Average Score \\
+        \hline
+        1s & 1.861 \\
+        2s & 5.366 \\
+        3s & 8.676 \\
+        4s & 12.116 \\
+        5s & 15.65 \\
+        6s & 19.488 \\
+        3 of a kind & 22.344 \\
+        4 of a kind & 12.897 \\
+        Full house & 23.125 \\
+        Small straight & 29.43 \\
+        Large straight & 33.12 \\
+        Yahtzee & 17.0 \\
+        Chance & 22.286 \\
+        \hline
+    \end{tabular}
+\end{center} 
+
+\noindent
+If the agent's action is to choose an unused category, then the reward is the difference between the agent's score and an optimal agent's average score for that category divided by 10. I divide by 10 to scale down the intermediate rewards and ensure that it does not overpower the final reward of winning or losing the game. If the agent's action is to reroll the dice, then the reward is 0. If the agent's action is to choose a category that has already been filled out, then the reward is a severe -10 to punish it.
+
+The reward function at the end of the game is also not as straightforward as it seems. Take for example the naive reward function where the agent gets 1 if it wins and -1 if it loses. When trained against a strong opponent like my optimal solitaire agent, the DQN agent will lose every single game and continue getting rewards of -1, which is not very instructive. Thus, in an attempt to find a better reward function, the following variants will be tested:
+
+\begin{itemize}
+    \item \textbf{Naive:} The agent gets 1 if it wins, -1 if it loses, and 0 if it draws.
+    \item \textbf{Gradient:} Instead of getting the same reward when losing regardless of the margin, the agent gets a reward proportional to the margin of defeat. The reward for losing is the score difference divided by 100. Winning and drawing still give rewards of 1 and 0 respectively because the margin of victory does not matter, and the purpose of the gradient when losing is to encourage the agent to lose by as little as possible while it is still learning.
+    \item \textbf{Fixed:} A score goal of 110 is set for the agent to achieve. The agent gets 1 if it achieves the score goal, -1 if it does not, and 0 if it draws. 110 was chosen as an intermediate score value between random performance and optimal performance. Note that the opponent's score is not taken into account when calculating the reward.
+    \item \textbf{Moving Average:} Instead of a fixed score goal, the score goal moves with the agent's performance. The minimum score goal is still 110, but as the agent learns and gets better, the score goal becomes 20 points higher than the agent's average score over the last 100 games. The agent gets 1 if it achieves the score goal, -1 if it does not, and 0 if it draws. Again, the opponent's score is not taken into account when calculating the reward.
+\end{itemize}
+
+\subsubsection{DQN Architecture}
+
+As mentioned before, the purpose of DQN to use a neural network to approximate the Q-function. The network is designed with the following structure, with inspiration from PyTorch's DQN tutorial \cite{dqn}:
+\begin{itemize}
+    \item Input Layer: Size equal to the number of observations in the game state (38).
+    \item Hidden Layers: Two fully connected layers with 256 neurons each.
+    \item Output Layer: Size equal to the number of possible actions (23).
+    \item Activation Function: ReLU (Rectified Linear Unit) for hidden layers.
+\end{itemize}
+
+\noindent
+To help stabilize the learning process, a target network is used alongside the policy network. The target network is a copy of the policy network, and its weights are updated at a controlled rate. The target network is used to calculate the target Q-values for the policy network to learn from. The policy network is used to calculate the Q-values for the agent to actually act on. The loss function used is the Huber loss, and the optimization is done using the AdamW optimizer.
+
+To further improve and stabilize the learning process, replay memory is used to store transitions observed by the agent. It allows for more efficient and stable learning by breaking correlations between consecutive learning updates. The memory has a predefined capacity, and the agent samples from it randomly during training.
+
+\subsubsection{Agent and Training Process}
+The agent in the implementation makes decisions based on an epsilon-greedy policy, balancing exploration and exploitation. The training process involves:
+\begin{enumerate}
+    \item Choosing actions either randomly (according to epsilon) or based on the policy network's output.
+    \item Observing the reward and next state resulting from the action.
+    \item Storing the transition in the replay memory.
+    \item Sampling a batch from the memory and using it to update the policy network.
+    \item Soft updating the target network with the policy network's weights.
+\end{enumerate}
+
+\noindent
+
+\subsubsection{Hyperparameters}
+The hyperparameters used in the DQN agent are as follows:
+
+\begin{itemize}
+    \item \textbf{Epsilon:} The probability of choosing a random action. Epsilon starts at 0.9.
+    \item \textbf{Epsilon End:} The value of epsilon at the end of training. Epsilon stops decaying at 0.1.
+    \item \textbf{Epsilon Decay:} The rate at which epsilon decays. Epsilon is multiplied by 0.9998 every game.
+    \item \textbf{Gamma:} The discount factor. Gamma is 0.99.
+    \item \textbf{Learning Rate:} The learning rate of the optimizer. The learning rate is 0.001.
+    \item \textbf{Batch Size:} The number of transitions sampled from the replay memory during learning. The batch size is 100.
+    \item \textbf{Memory Size:} The capacity of the replay memory. The memory size is 20,000.
+    \item \textbf{Tau:} The weighted average parameter for soft updating the target network. Tau is 0.005.
+\end{itemize}
 
 \section{Results}
 % Your results content here
 
+\subsection{Optimal Solitaire Agent}
+Running the dynamic programming algorithm to calculate the expected future score for each game state takes around 7 hours on my machine. To get the agent's expected score, we can simply use the expected future score of the game state where the scorecard is all 0s and the upper section score is 0. This gives us an expected score of 245.87 for Yahtzee without bonuses, which fortunately matches the expected score that Glenn calculated in his paper \cite{glenn}.
+
+\subsection{Greedy Solitaire Agent}
+Over the course of 10,000 solitaire games, the greedy agent achieved an average score of 211.18
+
+\subsection{Random Agent}
+Over the course of 10,000 solitaire games, the random agent achieved an average score of 46.44.
+
+\subsection{DQN Agent}
+The naive variant of the DQN agent was trained for 50,000 games against the random, greedy, and optimal solitaire agent. Since the naive agennt was hardly losing against the random agent after enough training, the gradient variant of the DQN agent was only trained against the greedy and optimal agents. Seeing potential in the gradient variant, I also tried training the models over 100,000 games to see if any more learning was possible past 50,000 games. The fixed and moving average variants of the DQN agent were trained for 50,000 games against the random agent because the random agent is the fastest of the three, and the fixed and moving average variants do not depend on the opponent's score.
+
+\begin{figure}[H]
+    \begin{tabular}{ccc}
+        \includegraphics[width=0.3\textwidth]{naive_random} & 
+        \includegraphics[width=0.3\textwidth]{naive_greedy} & 
+        \includegraphics[width=0.3\textwidth]{naive_optimal} \\
+        (a) Naive vs. Random &
+        (b) Naive vs. Greedy &
+        (c) Naive vs. Optimal
+    \end{tabular}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+        \includegraphics[width=0.45\textwidth]{gradient_greedy.png} &
+        \includegraphics[width=0.45\textwidth]{gradient_optimal.png} \\
+        (d) Gradient vs. Greedy 50k games &
+        (e) Gradient vs. Optimal 50k games \\
+    \end{tabular}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+        \includegraphics[width=0.45\textwidth]{gradient_greedy_long.png} &
+        \includegraphics[width=0.45\textwidth]{gradient_optimal_long.png} \\
+        (f) Gradient vs. Greedy 100k games &
+        (g) Gradient vs. Optimal 100k games
+    \end{tabular}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+        \includegraphics[width=0.45\textwidth]{fixed_random.png} &
+        \includegraphics[width=0.45\textwidth]{flex_random.png} \\
+        (h) Fixed vs. Random &
+        (i) Moving Average vs. Random
+    \end{tabular}
+\end{figure}
+
+\noindent
+After training, each of the nine DQN agents were tested against the random, greedy, and optimal solitaire agents over the course of 10,000 games. The results are as follows:
+
+\begin{table}[H]
+    \centering
+    \caption*{Average Score Over 10,000 Games}
+    \begin{tabular}{ |c|c|c|c| }
+        \hline
+        Reward Variant - Opponent & Random & Greedy & Optimal \\
+        \hline
+        Naive - Random & 97.57 & 80.93 & 81.42 \\
+        Naive - Greedy & 101.66 & 106.64 & 105.57 \\
+        Naive - Optimal & 98.40 & 103.75 & 103.94 \\
+        Gradient - Greedy & 127.45 & 129.22 & 124.23 \\
+        Gradient - Greedy (100k) & 153.47 & 159.72 & 159.25 \\
+        Gradient - Optimal & 121.13 & 143.71 & 145.47 \\
+        Gradient - Optimal (100k) & 126.28 & 133.88 & 137.30 \\
+        Fixed - Random & 139.44 & 134.76 & 137.28 \\
+        Moving Average - Random & 144.84 & 129.45 & 131.66 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption*{Win Percentage Over 10,000 Games}
+    \begin{tabular}{ |c|c|c|c| }
+        \hline
+        Reward Variant - Opponent & Random & Greedy & Optimal \\
+        \hline
+        Naive - Random & 94.15\% & 0.41\% & 0.14\% \\
+        Naive - Greedy & 96.66\% & 0.96\% & 0.25\% \\
+        Naive - Optimal & 95.42\% & 0.79\% & 0.21\% \\
+        Gradient - Greedy & 99.04\% & 4.68\% & 1.17\% \\
+        Gradient - Greedy (100k) & 99.73\% & 14.4\% & 6.02\% \\
+        Gradient - Optimal & 99.14\% & 6.46\% & 2.88\% \\
+        Gradient - Optimal (100k) & 99.09\% & 3.89\% & 1.60\% \\
+        Fixed - Random & 99.56\% & 7.34\% & 2.60\% \\
+        Moving Average - Random & 99.25\% & 6.09\% & 2.37\% \\
+        \hline
+    \end{tabular}
+\end{table}
+
 \section{Discussion}
 
+\section{Conclusion}
 
+
+\newpage
 
 \section{References}
 \printbibliography[heading=none]
