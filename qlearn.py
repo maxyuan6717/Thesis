@@ -1,5 +1,4 @@
 import gymnasium as gym
-import math
 import random
 import matplotlib
 import matplotlib.pyplot as plt
@@ -132,32 +131,23 @@ class Agent:
         action_batch = torch.cat(batch.action)
         reward_batch = torch.cat(batch.reward)
 
-        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-        # columns of actions taken. These are the actions which would've been taken
-        # for each batch state according to policy_net
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
 
-        # Compute V(s_{t+1}) for all next states.
-        # Expected values of actions for non_final_next_states are computed based
-        # on the "older" target_net; selecting their best reward with max(1).values
-        # This is merged based on the mask, such that we'll have either the expected
-        # state value or 0 in case the state was final.
         next_state_values = torch.zeros(self.batch_size, device=self.device)
         with torch.no_grad():
             next_state_values[non_final_mask] = (
                 self.target_net(non_final_next_states).max(1).values
             )
-        # Compute the expected Q values
+
+        # compute the expected Q values
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch
 
-        # Compute Huber loss
+        # compute Huber loss
         criterion = nn.SmoothL1Loss()
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
-        # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
-        # In-place gradient clipping
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
@@ -329,13 +319,8 @@ def main():
                     observation, dtype=torch.float32, device=agent.device
                 ).unsqueeze(0)
 
-            # Store the transition in memory
             agent.memory.push(state, action, next_state, reward)
-
-            # Move to the next state
             state = next_state
-
-            # Perform one step of the optimization (on the policy network)
             agent.learn()
 
             # Soft update of the target network's weights

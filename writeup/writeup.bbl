@@ -40,6 +40,53 @@
       \field{title}{An Optimal Strategy for Yahtzee}
       \field{year}{2006}
     \endentry
+    \entry{hafner}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=fb2a7ef620806208ad338ae4ceabd4a5}{%
+           family={Häfner},
+           familyi={H\bibinitperiod},
+           given={Dion},
+           giveni={D\bibinitperiod}}}%
+      }
+      \strng{namehash}{fb2a7ef620806208ad338ae4ceabd4a5}
+      \strng{fullhash}{fb2a7ef620806208ad338ae4ceabd4a5}
+      \strng{bibnamehash}{fb2a7ef620806208ad338ae4ceabd4a5}
+      \strng{authorbibnamehash}{fb2a7ef620806208ad338ae4ceabd4a5}
+      \strng{authornamehash}{fb2a7ef620806208ad338ae4ceabd4a5}
+      \strng{authorfullhash}{fb2a7ef620806208ad338ae4ceabd4a5}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://dionhaefner.github.io/2021/04/yahtzotron-learning-to-play-yahtzee-with-advantage-actor-critic}}
+      \field{title}{Learning to play Yahtzee with Advantage Actor-Critic (A2C)}
+    \endentry
+    \entry{kang}{unpublished}{}
+      \name{author}{2}{}{%
+        {{hash=96f2a79b446b2c3ace550fb995488d37}{%
+           family={Kang},
+           familyi={K\bibinitperiod},
+           given={Minhyung},
+           giveni={M\bibinitperiod}}}%
+        {{hash=1a658b0c62e7514190444fd9f66fec52}{%
+           family={Schroeder},
+           familyi={S\bibinitperiod},
+           given={Luca},
+           giveni={L\bibinitperiod}}}%
+      }
+      \strng{namehash}{668aa6797fdbd3a4f8ca7b1fcd6b3717}
+      \strng{fullhash}{668aa6797fdbd3a4f8ca7b1fcd6b3717}
+      \strng{bibnamehash}{668aa6797fdbd3a4f8ca7b1fcd6b3717}
+      \strng{authorbibnamehash}{668aa6797fdbd3a4f8ca7b1fcd6b3717}
+      \strng{authornamehash}{668aa6797fdbd3a4f8ca7b1fcd6b3717}
+      \strng{authorfullhash}{668aa6797fdbd3a4f8ca7b1fcd6b3717}
+      \field{sortinit}{K}
+      \field{sortinithash}{c02bf6bff1c488450c352b40f5d853ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Reinforcement Learning for Solving Yahtzee}
+      \field{year}{2018}
+    \endentry
     \entry{dqn}{misc}{}
       \name{author}{2}{}{%
         {{hash=56bf0b340039cf8594436a624ff548a9}{%

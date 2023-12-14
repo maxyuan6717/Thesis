@@ -36,7 +36,7 @@
     \centering
     \vspace*{\stretch{1}}
     \Huge
-    Yahtzee Title\\
+    Using Deep Q-Learning to Play Two-Player Yahtzee\\
     \vspace{10mm}
     \Large
     Max Yuan\\
@@ -51,7 +51,9 @@
 \newpage
 \begin{abstract}
 \noindent
-This thesis explores the development and performance of a Deep Q-Learning Network (DQN) agent designed to play the game of two-player Yahtzee. The objective is to create an AI agent that not only understands the basic rules and strategies of Yahtzee but also adapts its strategy based on the opponent's gameplay. The DQN agent is trained through reinforcement learning, where it learns optimal strategies by playing numerous games against various opponents, including deterministic rule-based agents and randomized players. The thesis evaluates the agent's performance, decision-making processes, and adaptability in diverse game scenarios. Additionally, it discusses the implications of this research in the broader context of AI's application in game theory and strategic decision-making. The findings suggest that the DQN agent not only achieves competence in playing Yahtzee but also exhibits strategic adaptability, making it a significant step in the development of AI agents capable of handling complex decision-making tasks in competitive environments.
+Yahtzee, a dice game based on poker, can be played either by yourself or with multiple players. Today's computers can handily solve the single player version of Yahtzee, but the multiplayer version of the game is too complicated to be solved—optimal play must be approximated through other means. This thesis explores the development and performance of a Deep Q-Learning Network (DQN) agent designed to learn and play the game of two-player Yahtzee. The objective is to create an AI agent that not only understands the basic rules of Yahtzee but also learns strategy and improves as much as possible. The DQN agent is trained through reinforcement learning, where it learns optimal strategies by playing numerous games against various opponents, including two deterministic rule-based agents and a randomized agent. The deterministic rule-based agents are designed to play the optimal solitaire strategy and a greedy solitaire strategy, which are derived from the findings of previous literature and rebuilt in python in this thesis.
+
+Nine different variants of the DQN agent are trained and evaluated against the three aforementioned opponents. The variants differ in their reward functions, training opponents, and training length. Ultimately the best of the nine variants was not able to match the performance of the optimal solitaire agent, scoring an average 159 points against the optimal agent with a winrate of 6\%, but it did quickly learn the rules of Yahtzee and make significant improvements over the random agent. With easily customizable DQN and Yahtzee environment implementations, this thesis provides a solid foundation for future research into improving the DQN agent's performance to match or exceed the optimal solitaire agent.
 \end{abstract}
 
 \tableofcontents
@@ -65,13 +67,7 @@ At first glance, it might seem like the maximizing your expected score is optima
 
 Yahtzee can be "solved" (i.e. calculating the best action for every possible state of the game) use the Markov Decision Process. In the solitaire version of the game, the number of states is low enough for today's computers to perform this calculation, and Professor James Glenn uses dynamic programming to solve solitaire Yahtzee in his paper, "An Optimal Strategy for Yahtzee" \cite{glenn}. However, when you add players to the game, the number of states increases exponentially. In this paper, I will be specifically exploring the two-player version of the game, but even still, there are too many states to calculate using dynamic programming. Instead, I will be using a Deep Q-Learning Network (DQN) agent to both grasp the fundamental rules of Yahtzee and learn to play good moves. I will also develop 3 agents playing various solitaire strategies to evaluate the variants of my DQN agent against: a random agent, a greedy agent, and an optimal agent.
 
-
-
-\comment {
-    % use in methods section instead
-    The Markov Decision Process can be applied to solve Yahtzee by calculating the best action for every possible state of the game. In the solitaire version of the game, there are roughly $2^{19}$ states to consider, which Professor James Glenn uses dynamic programming to solve in his paper, "An Optimal Strategy for Yahtzee" \cite{glenn}. However, adding players to the game exponentially increases the number of states to consider. In this paper, I will be specifically exploring the two-player version of the game, which has roughly $2^{48}$ states. ${2^{38}}$ states come from the two scorecards that we have to keep track of, each accounting for $2^{19}$ states as stated before. The remaining $2^{10}$ states come from the score difference between the two players that we now have to keep track.
-    % ----------------------------------------
-}
+Existing research on applying reinforcement learning techniques to multiplayer Yahtzee is limited. One group out of Stanford University applied MAXQ Q-Learning approach, a form of hierarchical learning, to two-player Yahtzee \cite{kang}. However, their agent did not consider the opponent's scorecard when making decisions, and its final performance was not strong. Their best performing agent averaged a score of 129.58. Another attempt at applying reinforcement learning to Yahtzee was made by Dion Häfner, who applied the Advantage Actor-Critic (A2C) algorithm to two-player Yahtzee \cite{hafner}. His agent ultimately performed quite well, achieving a mean score of around 236. We will see how my agent using Deep Q-Learning compares to these previous attempts.
 
 \section{Methods}
 
@@ -249,7 +245,7 @@ I ultimately settled on an intermediate reward function that compares the score 
 \noindent
 If the agent's action is to choose an unused category, then the reward is the difference between the agent's score and an optimal agent's average score for that category divided by 10. I divide by 10 to scale down the intermediate rewards and ensure that it does not overpower the final reward of winning or losing the game. If the agent's action is to reroll the dice, then the reward is 0. If the agent's action is to choose a category that has already been filled out, then the reward is a severe -10 to punish it.
 
-The reward function at the end of the game is also not as straightforward as it seems. Take for example the naive reward function where the agent gets 1 if it wins and -1 if it loses. When trained against a strong opponent like my optimal solitaire agent, the DQN agent will lose every single game and continue getting rewards of -1, which is not very instructive. Thus, in an attempt to find a better reward function, the following variants will be tested:
+The reward function at the end of the game is also not as straightforward as it seems. Take for example the naive reward function where the agent gets 1 if it wins and -1 if it loses. When trained against a strong opponent like my optimal solitaire agent, the DQN agent will lose every single game and continue getting rewards of -1, which is not very instructive. Against a weak opponent like my random agent, the DQN agent will win ever single game and continue getting rewards of 1, which is also not very instructive when the ultimate goal is to beat the optimal solitaire agent. Thus, in an attempt to find a better reward function, the following variants will be tested:
 
 \begin{itemize}
     \item \textbf{Naive:} The agent gets 1 if it wins, -1 if it loses, and 0 if it draws.
@@ -314,6 +310,8 @@ Over the course of 10,000 solitaire games, the random agent achieved an average 
 \subsection{DQN Agent}
 The naive variant of the DQN agent was trained for 50,000 games against the random, greedy, and optimal solitaire agent. Since the naive agennt was hardly losing against the random agent after enough training, the gradient variant of the DQN agent was only trained against the greedy and optimal agents. Seeing potential in the gradient variant, I also tried training the models over 100,000 games to see if any more learning was possible past 50,000 games. The fixed and moving average variants of the DQN agent were trained for 50,000 games against the random agent because the random agent is the fastest of the three, and the fixed and moving average variants do not depend on the opponent's score.
 
+The graphs below plot the models' 100-game score averages as they progress through their training. Averages are displayed instead of every game's score in an attempt to reduce the noisiness of the graph.
+
 \begin{figure}[H]
     \begin{tabular}{ccc}
         \includegraphics[width=0.3\textwidth]{naive_random} & 
@@ -360,7 +358,7 @@ After training, each of the nine DQN agents were tested against the random, gree
     \caption*{Average Score Over 10,000 Games}
     \begin{tabular}{ |c|c|c|c| }
         \hline
-        Reward Variant - Opponent & Random & Greedy & Optimal \\
+        Reward Variant - Training Opponent & Random & Greedy & Optimal \\
         \hline
         Naive - Random & 97.57 & 80.93 & 81.42 \\
         Naive - Greedy & 101.66 & 106.64 & 105.57 \\
@@ -380,7 +378,7 @@ After training, each of the nine DQN agents were tested against the random, gree
     \caption*{Win Percentage Over 10,000 Games}
     \begin{tabular}{ |c|c|c|c| }
         \hline
-        Reward Variant - Opponent & Random & Greedy & Optimal \\
+        Reward Variant - Training Opponent & Random & Greedy & Optimal \\
         \hline
         Naive - Random & 94.15\% & 0.41\% & 0.14\% \\
         Naive - Greedy & 96.66\% & 0.96\% & 0.25\% \\
@@ -396,8 +394,21 @@ After training, each of the nine DQN agents were tested against the random, gree
 \end{table}
 
 \section{Discussion}
+As predicted earlier, the DQN agents employing the naive reward function where a win returns 1, a loss returns -1, and a draw returns 0, performed the worst out of all the agents. The performance against the random agent was roughly similar across the three agents, with average scores around the 100 mark and high win percentages around 95\%. However, when tested against stronger opponents, the agent trained against random performed significantly worse, with average scores around 81 points. On the other hand, the agents trained against stronger opponents maintained their performance, with average scores that were even slightly higher than they were against the random agent.
 
-\section{Conclusion}
+In fact, it is interesting to note that all nine DQN agents had their highest average scores when tested against the agent that they were trained against. This demonstrates that the opponent's scorecard—and by extension, their strategy and performance so far in the game—influenced the learning of the DQN agent, and it optimized its playing to perform best against the specific strategy it was trained against.
+
+In hopes of improving the performance of the DQN agent, I then trained it with the gradient reward function, where the rewards for a less were proportional to the score difference instead fixed at -1. This improved the DQN agent's training performance considerably, with charts (d) and (e) showing much higher average scores being optained during training in the same amount of times as their naive counterparts. The gradient agent trained against greedy had an average score of almost 130 in its test games against the greedy agent, and the gradient agent trained against optimal had an average score of over 145 when tested against the optimal agent. The performance of the gradient agent trained against optimal also did not seem like it was plateauing at the end of the 50,000 games, so I doubled the training time to 100,000 games to see if any further improvements could be made. Surprisingly, the agent trained against greedy turned out to be the stronger player after the 100,000 games, while the agent trained against optimal performed worse than it did after 50,000 games. This result highlight the nondeterministic aspect of reinforcement learning. Multiple runs with the same network and same hyperparameters can, and likely will, lead to different results depending on the local max that the model settles on.
+
+I then tested the two reward functions that did not rely on the opponent's score to see if they fared any better. Both the fixed and moving average variants were trained against the random agent to speed up training times. I expected the moving average variant to perform better because the score goal for the agent to beat increases as the agent learns and improves. I hypothesized that the fixed variant would plateau once it could reliably beat the set score goal of 110, while the moving average variant would continuing improving. Looking at chart (h), we see that the fixed variant did indeed plateau once it could reliably beat a score of 110. However, chart (i) is not so different, showing that the moving average variant did not continue improving as expected. When tested against random, the moving average variant performed slightly better, with an average score of 144.84 compared to 139.44 of the fixed variant. However, like with the naive DQN agent, being trained against the random agent caused a significant decrease in performance when the DQN agents were tested against stronger opponents. Against greedy and optimal, it was actually the fixed variant that performed slightly better. Despite not performing as well as the gradient varient, the speed at which the fixed and moving average variants reached an average score of 120 is unparalleled. It only took around 12,000 games of training for the fixed and moving average variants to reach 120 before they started to plateau, while it took the gradient varients over double the time to do the same.
+
+Apart from the agent's average scores during training, the charts also plot how many invalid actions were made by the agent—an indirect measure of how well the agent has learned to not choose a used category. While it is hard to tell on the graph because of how many datapoints there are, the number of actions quickly drops to around 0-5 invaid actions per game after roughly 200 games. For the majority of games, in fact, the number of invalid actions is just zero or one after the fist 200 games.
+
+Overall, the best performing DQN agent was the one that trained for 100,000 games against the greedy agent using a gradient reward function. It had the highest average scores when tested against all three types of opponents, and it also held the highest win percentages against all opponents. Still though, its performance was dissapointing, with only a 14.4\% winrate over a player playing a greedy solitaire strategy and only a 6.02\% winrate over a player playing the optimal solitaire strategy. While the goal of this project was to develop a DQN agent that could compete with the optimal solitaire strategy in a 2-player setting, more work is required to fine-tune the neural network's architecture and hyperparameters along with my custom Yahtzee environment's observation space and reward function.
+
+\section{Future Work}
+My implementations of the deep Q-Learning network and its corresponding Yahtzee gym environement are easily customizable to test different network architectures, hyperparameters, and reward functions. Spinning up a new opponent agent to test the model against is also incredibly straightforward with my implementation. With more time, the DQN agents could be trained for even longer, perhaps one million games, in order to realize their full potential. In order to optimize performance, the various hyperparameters would all have to be tuned, and the architecture itself might have to be modified. The number of hidden layers, size of each hidden layer, activation functions, and even a type of neural network that is not just a simple feed forward network should all be tested to see what combination works best. Most importantly, however, I would spend more time developing various reward functions and playing with the environment's observation space to figure out how to best nudge the agent in the right direction during training and determine if it needs more or less information about the game state. Perhaps a combination of the gradient and moving average variants is better than the two on their own, where the model first trains using the moving average varient for its fast initial learning speed and then switches to the gradient variant for sustained improvement. Or, perhaps the DQN would be better off if it was given more information about the dice, such as the sum of the dice. 
+
 
 
 \newpage

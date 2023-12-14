@@ -1,13 +1,13 @@
 # Fdb version 4
-["biber writeup"] 0 "writeup.bcf" "writeup.bbl" "writeup" 1702432797 -1
-  "./references.bib" 1702421212 359 5f2471567513656dad12de34d02fe2e4 ""
-  "writeup.bcf" 1702432797 107999 0bf4075c447783634f3d18c4a64b6596 "pdflatex"
+["biber writeup"] 1702537990 "writeup.bcf" "writeup.bbl" "writeup" 1702537994 0
+  "./references.bib" 1702537989 789 77b07e9460955874854f30683262b4e1 ""
+  "writeup.bcf" 1702537994 108119 584e210b99533fb20e97b96b615ac81e "pdflatex"
   (generated)
   "writeup.bbl"
   "writeup.blg"
   (rewritten before read)
-["pdflatex"] 1702432795 "/Users/maxyuan/Documents/Thesis/writeup/writeup.tex" "writeup.pdf" "writeup" 1702432797 0
-  "/Users/maxyuan/Documents/Thesis/writeup/writeup.tex" 1702432792 33721 26ae1dff10781d78537481c75c091210 ""
+["pdflatex"] 1702537992 "/Users/maxyuan/Documents/Thesis/writeup/writeup.tex" "writeup.pdf" "writeup" 1702537994 0
+  "/Users/maxyuan/Documents/Thesis/writeup/writeup.tex" 1702537989 41555 855973b647ac65b1d847e6810d67d021 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/tfm/jknappen/ec/tcrm1200.tfm" 1136768653 1536 74b7293ec3713bb7fdca8dd1bd1f469c ""
@@ -112,11 +112,11 @@
   "images//naive_greedy.png" 1702426039 532163 3270ab1228965fb75c2dea551c34617a ""
   "images//naive_optimal.png" 1702425824 511464 fe30166e93031712db4207a672f20efd ""
   "images//naive_random.png" 1702425589 536599 59c03b46d3685bd9bd206e2587549b5d ""
-  "writeup.aux" 1702432797 2748 aaf6d5fd43c849fe3c3c4304af92caeb "pdflatex"
-  "writeup.bbl" 1702426290 2557 ce7c1e4554fe2c2690aa37da6a6341f2 "biber writeup"
-  "writeup.run.xml" 1702432797 2326 cdde505683298c49b88d10eb25aa5576 "pdflatex"
-  "writeup.tex" 1702432792 33721 26ae1dff10781d78537481c75c091210 ""
-  "writeup.toc" 1702432797 1409 3377a78f2950e48ee7f35112e8796712 "pdflatex"
+  "writeup.aux" 1702537994 2980 2f97eb4ebd6dcc47e23cc28f05525d52 "pdflatex"
+  "writeup.bbl" 1702537992 4626 beaad612f4a90dacce065b74616b95fe "biber writeup"
+  "writeup.run.xml" 1702537994 2326 cdde505683298c49b88d10eb25aa5576 "pdflatex"
+  "writeup.tex" 1702537989 41555 855973b647ac65b1d847e6810d67d021 ""
+  "writeup.toc" 1702537994 1411 c80c0b14423378fc8ad9f5c3b6078b0b "pdflatex"
   (generated)
   "writeup.aux"
   "writeup.bcf"

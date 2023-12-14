@@ -1,20 +1,20 @@
-\contentsline {section}{\numberline {1}Introduction}{2}{}%
-\contentsline {section}{\numberline {2}Methods}{2}{}%
-\contentsline {subsection}{\numberline {2.1}Rules}{2}{}%
-\contentsline {subsection}{\numberline {2.2}Developing the Optimal Solitaire Agent}{3}{}%
-\contentsline {subsection}{\numberline {2.3}Developing the Greedy Solitaire Agent}{6}{}%
-\contentsline {subsection}{\numberline {2.4}Developing the Random Agent}{6}{}%
-\contentsline {subsection}{\numberline {2.5}Developing the DQN Agent}{6}{}%
-\contentsline {subsubsection}{\numberline {2.5.1}Yahtzee Gymnasium Environment}{7}{}%
-\contentsline {subsubsection}{\numberline {2.5.2}Reward Function Variants}{9}{}%
-\contentsline {subsubsection}{\numberline {2.5.3}DQN Architecture}{10}{}%
-\contentsline {subsubsection}{\numberline {2.5.4}Agent and Training Process}{11}{}%
-\contentsline {subsubsection}{\numberline {2.5.5}Hyperparameters}{11}{}%
-\contentsline {section}{\numberline {3}Results}{12}{}%
-\contentsline {subsection}{\numberline {3.1}Optimal Solitaire Agent}{12}{}%
-\contentsline {subsection}{\numberline {3.2}Greedy Solitaire Agent}{12}{}%
-\contentsline {subsection}{\numberline {3.3}Random Agent}{12}{}%
-\contentsline {subsection}{\numberline {3.4}DQN Agent}{12}{}%
-\contentsline {section}{\numberline {4}Discussion}{14}{}%
-\contentsline {section}{\numberline {5}Conclusion}{14}{}%
-\contentsline {section}{\numberline {6}References}{15}{}%
+\contentsline {section}{\numberline {1}Introduction}{3}{}%
+\contentsline {section}{\numberline {2}Methods}{4}{}%
+\contentsline {subsection}{\numberline {2.1}Rules}{4}{}%
+\contentsline {subsection}{\numberline {2.2}Developing the Optimal Solitaire Agent}{5}{}%
+\contentsline {subsection}{\numberline {2.3}Developing the Greedy Solitaire Agent}{7}{}%
+\contentsline {subsection}{\numberline {2.4}Developing the Random Agent}{8}{}%
+\contentsline {subsection}{\numberline {2.5}Developing the DQN Agent}{8}{}%
+\contentsline {subsubsection}{\numberline {2.5.1}Yahtzee Gymnasium Environment}{8}{}%
+\contentsline {subsubsection}{\numberline {2.5.2}Reward Function Variants}{10}{}%
+\contentsline {subsubsection}{\numberline {2.5.3}DQN Architecture}{12}{}%
+\contentsline {subsubsection}{\numberline {2.5.4}Agent and Training Process}{12}{}%
+\contentsline {subsubsection}{\numberline {2.5.5}Hyperparameters}{13}{}%
+\contentsline {section}{\numberline {3}Results}{13}{}%
+\contentsline {subsection}{\numberline {3.1}Optimal Solitaire Agent}{13}{}%
+\contentsline {subsection}{\numberline {3.2}Greedy Solitaire Agent}{13}{}%
+\contentsline {subsection}{\numberline {3.3}Random Agent}{14}{}%
+\contentsline {subsection}{\numberline {3.4}DQN Agent}{14}{}%
+\contentsline {section}{\numberline {4}Discussion}{16}{}%
+\contentsline {section}{\numberline {5}Future Work}{18}{}%
+\contentsline {section}{\numberline {6}References}{19}{}%
